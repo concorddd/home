@@ -9,6 +9,8 @@ import {
   loadGoogleIdentity,
   type GoogleCredentialResponse,
 } from "@/integrations/google";
+import { useServerFn } from "@tanstack/react-start";
+import { loginByUsername } from "@/lib/auth-functions";
 
 export const Route = createFileRoute("/login")({
   ssr: false,
@@ -38,16 +40,21 @@ function LoginPage() {
   const navigate = useNavigate();
   const { session, loading: authLoading } = useAuth();
   const gisRef = useRef<HTMLDivElement | null>(null);
-  const googleNonceRef = useRef<string | null>(null);
+      const googleNonceRef = useRef<string | null>(null);
   const [googleReady, setGoogleReady] = useState(false);
   const [mode, setMode] = useState<"signin" | "signup">("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [username, setUsername] = useState("");
+  const [loginIdentifier, setLoginIdentifier] = useState("");
   const [usernameState, setUsernameState] = useState<UsernameState>("idle");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+
+  // No login, permite escolher entre identificar por e-mail ou por @username.
+  const [useUsername, setUseUsername] = useState(false);
+  const loginUser = useServerFn(loginByUsername);
 
   useEffect(() => {
     if (!authLoading && session) navigate({ to: "/canais", replace: true });
@@ -121,9 +128,21 @@ function LoginPage() {
     setBusy(true);
     try {
       if (mode === "signin") {
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
-        if (error) throw error;
-        navigate({ to: "/canais", replace: true });
+        if (useUsername) {
+          const result = await loginUser({ username: loginIdentifier, password });
+          if (!result.ok) {
+            throw new Error(result.error);
+          }
+          await supabase.auth.setSession({
+            access_token: result.access_token,
+            refresh_token: result.refresh_token,
+          });
+          navigate({ to: "/canais", replace: true });
+        } else {
+          const { error } = await supabase.auth.signInWithPassword({ email, password });
+          if (error) throw error;
+          navigate({ to: "/canais", replace: true });
+        }
       } else {
         const clean = username.trim().replace(/^@/, "");
         if (usernameState !== "available") {
@@ -229,12 +248,44 @@ function LoginPage() {
               )}
             </Field>
           )}
-          <Field label="E-mail">
+
+          {mode === "signin" && (
+            <div className="flex items-center gap-2 rounded-lg bg-secondary/60 p-1">
+              <button
+                type="button"
+                onClick={() => setUseUsername(false)}
+                className={`flex-1 rounded-md px-3 py-1.5 text-xs font-medium transition-all duration-200 ${
+                  !useUsername ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                Email
+              </button>
+              <button
+                type="button"
+                onClick={() => setUseUsername(true)}
+                className={`flex-1 rounded-md px-3 py-1.5 text-xs font-medium transition-all duration-200 ${
+                  useUsername ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                Usuário
+              </button>
+            </div>
+          )}
+
+          <Field label={useUsername ? "Nome de usuário" : "E-mail"}>
             <input
-              type="email"
+              type={useUsername ? "text" : "email"}
               required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              value={useUsername ? loginIdentifier : email}
+              onChange={(e) => {
+                if (useUsername) {
+                  setLoginIdentifier(e.target.value);
+                } else {
+                  setEmail(e.target.value);
+                }
+              }}
+              placeholder={useUsername ? "seu_username" : "seu@email.com"}
+              autoComplete={useUsername ? "username" : "email"}
               className="w-full rounded-lg bg-message-input px-3 py-2.5 text-sm outline-none ring-1 ring-transparent transition-all focus:ring-primary/60"
             />
           </Field>

@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { Headphones, Mic, Settings, Users } from "lucide-react";
 import { UserAvatar } from "@/components/UserAvatar";
+import { StatusDot } from "@/components/StatusDot";
 import { UserSettingsModal } from "@/components/UserSettingsModal";
 import { GuidedTour } from "@/components/GuidedTour";
 import { useAuth } from "@/hooks/useAuth";
@@ -64,6 +65,11 @@ export function DirectSidebar({ activeUserId }: { activeUserId?: string | null }
                 >
                   <span className="relative shrink-0">
                     <UserAvatar username={p.username} avatarUrl={p.avatar_url} />
+                    <StatusDot
+                      status={p.status}
+                      ring="border-servers"
+                      className="size-2.5"
+                    />
                     <UnreadBadge count={unread} />
                   </span>
                   <span className="min-w-0 flex-1">
@@ -83,10 +89,10 @@ export function DirectSidebar({ activeUserId }: { activeUserId?: string | null }
         </ul>
       </div>
 
-      <div className="flex items-center gap-2 border-t border-border/60 bg-servers px-2 py-3">
+      <div className="flex items-center gap-2 border-t border-border/60 bg-servers px-3 py-4">
         <div className="relative">
           <UserAvatar username={profile?.username ?? "?"} avatarUrl={profile?.avatar_url ?? null} />
-          <span className="absolute -bottom-0.5 -right-0.5 size-3 rounded-full border-2 border-servers bg-[#3ba55d]" />
+          <StatusDot status={profile?.status} ring="border-servers" />
         </div>
         <div className="min-w-0 flex-1">
           <p className="truncate text-[13px] font-medium tracking-tight">

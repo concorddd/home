@@ -7,6 +7,7 @@ export type Profile = {
   username: string;
   display_name: string | null;
   avatar_url: string | null;
+  banner_url?: string | null;
   status: string;
   created_at: string;
 };
@@ -30,11 +31,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const userId = session?.user?.id ?? null;
 
   async function loadProfile(id: string) {
-    const { data } = await supabase
+    // Tenta buscar com banner_url; se a coluna ainda não existir no banco,
+    // faz fallback para a query sem a coluna (evita quebrar o perfil).
+    let { data } = await supabase
       .from("profiles")
-      .select("id, username, display_name, avatar_url, status, created_at")
+      .select("id, username, display_name, avatar_url, banner_url, status, created_at")
       .eq("id", id)
       .maybeSingle();
+
+    if (data == null) {
+      const fallback = await supabase
+        .from("profiles")
+        .select("id, username, display_name, avatar_url, status, created_at")
+        .eq("id", id)
+        .maybeSingle();
+      data = fallback.data;
+    }
+
     setProfile((data as Profile) ?? null);
   }
 

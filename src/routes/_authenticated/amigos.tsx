@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
-import { Check, Loader2, Search, UserPlus, X } from "lucide-react";
+import { Check, Loader2, Search, UserPlus, X, MessageSquare, UserMinus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useFriends } from "@/hooks/useFriends";
@@ -9,6 +9,7 @@ import { DirectSidebar } from "@/components/DirectSidebar";
 import { SideDrawer, MenuButton, MobileTabBar } from "@/components/MobileShell";
 import { UserSettingsModal } from "@/components/UserSettingsModal";
 import { UserAvatar } from "@/components/UserAvatar";
+import { StatusDot } from "@/components/StatusDot";
 
 export const Route = createFileRoute("/_authenticated/amigos")({
   head: () => ({
@@ -129,43 +130,61 @@ function FriendsPage() {
           </nav>
         </header>
 
-        <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4 md:px-6 md:py-6">
+        <div className="min-h-0 flex-1 overflow-y-auto px-4 py-6 md:px-8 md:py-8">
           {loading ? (
             <p className="flex items-center gap-2 text-sm text-muted-foreground">
               <Loader2 className="size-4 animate-spin" /> Carregando…
             </p>
           ) : tab === "adicionar" ? (
-            <div className="max-w-xl">
-              <h2 className="text-balance-tight text-lg font-semibold">Adicionar amigo</h2>
-              <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
-                Encontre pessoas pelo @username exato. Ele diferencia cada conta no Concord.
-              </p>
-              <form onSubmit={sendRequest} className="mt-4 flex items-center gap-2">
-                <div className="flex flex-1 items-center gap-2 rounded-xl bg-message-input px-3 py-2.5 ring-1 ring-transparent focus-within:ring-primary/50">
-                  <Search className="size-4 text-muted-foreground" />
-                  <input
-                    value={query}
-                    onChange={(e) => setQuery(e.target.value)}
-                    placeholder="@zynox"
-                    className="min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
-                  />
+            <div className="max-w-xl animate-fade-up">
+              <div className="rounded-2xl bg-channels p-6 shadow-[0_8px_24px_-12px_rgba(0,0,0,0.5)]">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="flex items-center justify-center w-12 h-12 rounded-xl bg-primary/10">
+                    <UserPlus className="size-6 text-primary" />
+                  </div>
+                  <div>
+                    <h2 className="text-lg font-semibold">Adicionar amigo</h2>
+                    <p className="text-sm text-muted-foreground">
+                      Encontre pessoas pelo @username exato.
+                    </p>
+                  </div>
                 </div>
-                <button
-                  type="submit"
-                  disabled={busy || !query.trim()}
-                  className="flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground transition-all hover:bg-primary/90 disabled:opacity-50"
-                >
-                  {busy ? <Loader2 className="size-4 animate-spin" /> : <UserPlus className="size-4" />}
-                  Enviar pedido
-                </button>
-              </form>
-              {feedback && (
-                <p
-                  className={`mt-3 text-sm ${feedback.kind === "ok" ? "text-[#3ba55d]" : "text-destructive"}`}
-                >
-                  {feedback.text}
-                </p>
-              )}
+                <form onSubmit={sendRequest} className="space-y-4">
+                  <div className="relative">
+                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+                    <input
+                      value={query}
+                      onChange={(e) => setQuery(e.target.value)}
+                      placeholder="Digite o @username do amigo"
+                      className="w-full rounded-xl bg-message-input py-3.5 pl-11 pr-4 text-sm outline-none ring-2 ring-transparent transition-all focus:ring-primary/50 placeholder:text-muted-foreground"
+                    />
+                  </div>
+                  <button
+                    type="submit"
+                    disabled={busy || !query.trim()}
+                    className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground transition-all hover:bg-primary/90 disabled:opacity-50"
+                  >
+                    {busy ? <Loader2 className="size-4 animate-spin" /> : <UserPlus className="size-4" />}
+                    Enviar pedido de amizade
+                  </button>
+                </form>
+                {feedback && (
+                  <div
+                    className={`mt-4 flex items-center gap-2 rounded-lg px-4 py-3 text-sm ${
+                      feedback.kind === "ok"
+                        ? "bg-[#3ba55d]/10 text-[#3ba55d]"
+                        : "bg-destructive/10 text-destructive"
+                    }`}
+                  >
+                    {feedback.kind === "ok" ? (
+                      <Check className="size-4" />
+                    ) : (
+                      <X className="size-4" />
+                    )}
+                    {feedback.text}
+                  </div>
+                )}
+              </div>
             </div>
           ) : tab === "pendentes" ? (
             <div className="max-w-2xl space-y-6">
@@ -227,10 +246,16 @@ function FriendsPage() {
                       <UserAvatar
                         username={f.profile?.username ?? "?"}
                         avatarUrl={f.profile?.avatar_url ?? null}
+                        className="size-11 text-base"
                       />
-                      <span className="min-w-0 flex-1 truncate text-sm text-muted-foreground">
-                        @{f.profile?.username} — aguardando resposta
-                      </span>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-medium truncate">
+                          {f.profile?.display_name || f.profile?.username}
+                        </p>
+                        <p className="text-xs text-muted-foreground truncate">
+                          @{f.profile?.username} — aguardando resposta
+                        </p>
+                      </div>
                       <button
                         onClick={() => void removeFriend(f.id)}
                         className="rounded-lg px-2 py-1 text-xs text-muted-foreground hover:text-destructive"
@@ -255,10 +280,17 @@ function FriendsPage() {
                       key={f.id}
                       className="flex items-center gap-3 rounded-xl px-2 py-2 transition-colors hover:bg-accent/40"
                     >
-                      <UserAvatar
-                        username={f.profile?.username ?? "?"}
-                        avatarUrl={f.profile?.avatar_url ?? null}
-                      />
+                      <div className="relative">
+                        <UserAvatar
+                          username={f.profile?.username ?? "?"}
+                          avatarUrl={f.profile?.avatar_url ?? null}
+                          className="size-11 text-base"
+                        />
+                        <StatusDot
+                          status={f.profile?.status}
+                          ring="border-channels"
+                        />
+                      </div>
                       <span className="min-w-0 flex-1 truncate text-sm">
                         {f.profile?.display_name || f.profile?.username}{" "}
                         <span className="text-muted-foreground">@{f.profile?.username}</span>

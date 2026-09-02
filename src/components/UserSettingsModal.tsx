@@ -1,15 +1,24 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
-import { X, LogOut, UserRound, Loader2, Camera } from "lucide-react";
+import { useServerFn } from "@tanstack/react-start";
+import { X, LogOut, UserRound, Loader2, Camera, Mic, Volume2, Video, Monitor, Bell, BellRing, Volume1, MessageSquare, Phone, UserPlus, Check } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { UserAvatar } from "@/components/UserAvatar";
 import { supabase } from "@/integrations/supabase/client";
+import { useNotifications } from "@/hooks/useNotifications";
+import { ensureStorageBuckets } from "@/lib/storage.functions";
+
+type SettingsTab = "account" | "voice" | "notifications";
 
 export function UserSettingsModal({ onClose }: { onClose: () => void }) {
   const { user, profile, signOut, refreshProfile } = useAuth();
   const navigate = useNavigate();
   const fileRef = useRef<HTMLInputElement>(null);
 
+  // Notifications hook
+  const notifications = useNotifications(user?.id);
+
+  const [activeTab, setActiveTab] = useState<SettingsTab>("account");
   const [username, setUsername] = useState("");
   const [displayName, setDisplayName] = useState("");
   const [status, setStatus] = useState("online");
@@ -18,11 +27,80 @@ export function UserSettingsModal({ onClose }: { onClose: () => void }) {
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
 
+  // Audio settings
+  const [inputVolume, setInputVolume] = useState(80);
+  const [outputVolume, setOutputVolume] = useState(80);
+  const [inputDevice, setInputDevice] = useState("default");
+  const [outputDevice, setOutputDevice] = useState("default");
+  const [transmissionMode, setTransmissionMode] = useState<"voice" | "video">("voice");
+  const [noiseSuppression, setNoiseSuppression] = useState(true);
+  const [echoCancellation, setEchoCancellation] = useState(true);
+  const [audioSaving, setAudioSaving] = useState(false);
+  const [audioSaved, setAudioSaved] = useState(false);
+
+  // Banner upload
+  const bannerRef = useRef<HTMLInputElement>(null);
+  const [uploadingBanner, setUploadingBanner] = useState(false);
+  const ensureBuckets = useServerFn(ensureStorageBuckets);
+
   useEffect(() => {
     setUsername(profile?.username ?? "");
     setDisplayName(profile?.display_name ?? "");
     setStatus(profile?.status ?? "online");
   }, [profile]);
+
+  async function handleBannerUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file || !user) return;
+    setUploadingBanner(true);
+    setError(null);
+
+    // Garante que o bucket "banners" exista (cria com service role se necessário)
+    try {
+      await ensureBuckets({ buckets: ["banners"] });
+    } catch {
+      // Se a server function falhar, seguimos tentando o upload mesmo assim.
+    }
+
+    const ext = file.name.split(".").pop() ?? "png";
+    const path = `${user.id}/banner-${Date.now()}.${ext}`;
+    let upErr: { message: string } | null = null;
+    let uploadResult = await supabase.storage.from("banners").upload(path, file, {
+      upsert: true,
+      contentType: file.type,
+    });
+    upErr = uploadResult.error;
+
+    // Tenta de novo caso o bucket tivesse acabado de ser criado (propagação)
+    if (upErr) {
+      try {
+        await ensureBuckets({ buckets: ["banners"] });
+      } catch {}
+      uploadResult = await supabase.storage.from("banners").upload(path, file, {
+        upsert: true,
+        contentType: file.type,
+      });
+      upErr = uploadResult.error;
+    }
+
+    if (upErr) {
+      setError(upErr.message);
+      setUploadingBanner(false);
+      return;
+    }
+
+    // Como o bucket é público, montamos a URL pública direto no objeto
+    const { data: publicUrlData } = supabase.storage.from("banners").getPublicUrl(path);
+    const publicUrl = publicUrlData.publicUrl;
+
+    const { error: updErr } = await supabase
+      .from("profiles")
+      .update({ banner_url: publicUrl })
+      .eq("id", user.id);
+    if (updErr) setError(updErr.message);
+    else await refreshProfile();
+    setUploadingBanner(false);
+  }
 
   async function handleSave(e: React.FormEvent) {
     e.preventDefault();
@@ -79,16 +157,79 @@ export function UserSettingsModal({ onClose }: { onClose: () => void }) {
     navigate({ to: "/login", replace: true });
   }
 
+  async function handleSaveAudio(e: React.FormEvent) {
+    e.preventDefault();
+    setAudioSaving(true);
+    setError(null);
+    setAudioSaved(false);
+    
+    // Save audio settings to localStorage (or could be saved to database)
+    const audioSettings = {
+      inputVolume,
+      outputVolume,
+      inputDevice,
+      outputDevice,
+      transmissionMode,
+      noiseSuppression,
+      echoCancellation,
+    };
+    localStorage.setItem("audioSettings", JSON.stringify(audioSettings));
+    
+    setAudioSaving(false);
+    setAudioSaved(true);
+    setTimeout(() => setAudioSaved(false), 2500);
+  }
+
+  // Load audio settings on mount
+  useEffect(() => {
+    const saved = localStorage.getItem("audioSettings");
+    if (saved) {
+      try {
+        const settings = JSON.parse(saved);
+        setInputVolume(settings.inputVolume ?? 80);
+        setOutputVolume(settings.outputVolume ?? 80);
+        setInputDevice(settings.inputDevice ?? "default");
+        setOutputDevice(settings.outputDevice ?? "default");
+        setTransmissionMode(settings.transmissionMode ?? "voice");
+        setNoiseSuppression(settings.noiseSuppression ?? true);
+        setEchoCancellation(settings.echoCancellation ?? true);
+      } catch {}
+    }
+  }, []);
+
   return (
     <div className="fixed inset-0 z-50 flex bg-background">
       <nav className="hidden w-full max-w-[240px] shrink-0 flex-col gap-1 bg-channels px-3 py-14 sm:pl-8 md:flex">
         <p className="px-2 pb-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
           Configurações do usuário
         </p>
-        <span className="flex items-center gap-2 rounded-lg bg-accent px-2 py-2 text-sm">
+        <button
+          onClick={() => setActiveTab("account")}
+          className={`flex items-center gap-2 rounded-lg px-2 py-2 text-sm transition-colors ${
+            activeTab === "account" ? "bg-accent text-foreground" : "text-muted-foreground hover:bg-accent/60 hover:text-foreground"
+          }`}
+        >
           <UserRound className="size-4" />
           Minha Conta
-        </span>
+        </button>
+        <button
+          onClick={() => setActiveTab("voice")}
+          className={`flex items-center gap-2 rounded-lg px-2 py-2 text-sm transition-colors ${
+            activeTab === "voice" ? "bg-accent text-foreground" : "text-muted-foreground hover:bg-accent/60 hover:text-foreground"
+          }`}
+        >
+          <Mic className="size-4" />
+          Voz e Vídeo
+        </button>
+        <button
+          onClick={() => setActiveTab("notifications")}
+          className={`flex items-center gap-2 rounded-lg px-2 py-2 text-sm transition-colors ${
+            activeTab === "notifications" ? "bg-accent text-foreground" : "text-muted-foreground hover:bg-accent/60 hover:text-foreground"
+          }`}
+        >
+          <Bell className="size-4" />
+          Notificações
+        </button>
         <div className="my-2 h-px bg-border" />
         <button
           onClick={handleSignOut}
@@ -108,12 +249,35 @@ export function UserSettingsModal({ onClose }: { onClose: () => void }) {
           <X className="size-5" />
         </button>
 
-        <div className="animate-fade-up max-w-2xl">
-          <h2 className="text-balance-tight text-xl font-bold">Minha Conta</h2>
+        {activeTab === "account" && (
+          <div className="animate-fade-up max-w-2xl">
+            <h2 className="text-balance-tight text-xl font-bold">Minha Conta</h2>
 
-          <div className="mt-6 overflow-hidden rounded-2xl bg-channels shadow-[0_16px_48px_-24px_rgba(0,0,0,0.9)]">
-            <div className="h-24 bg-gradient-to-r from-primary to-[#7d87ff]" />
-            <div className="-mt-10 px-6 pb-6">
+            <div className="mt-6 overflow-hidden rounded-2xl bg-channels shadow-[0_16px_48px_-24px_rgba(0,0,0,0.9)]">
+              <div
+                className="relative h-28 bg-gradient-to-r from-primary to-[#7d87ff] cursor-pointer group"
+                style={profile?.banner_url ? { backgroundImage: `url(${profile.banner_url})`, backgroundSize: 'cover', backgroundPosition: 'center' } : undefined}
+                onClick={() => bannerRef.current?.click()}
+              >
+                <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 transition-opacity group-hover:opacity-100">
+                  {uploadingBanner ? (
+                    <Loader2 className="size-6 animate-spin text-white" />
+                  ) : (
+                    <div className="flex flex-col items-center gap-1 text-white">
+                      <Camera className="size-6" />
+                      <span className="text-xs font-medium">Alterar banner</span>
+                    </div>
+                  )}
+                </div>
+                <input
+                  ref={bannerRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={handleBannerUpload}
+                  className="hidden"
+                />
+              </div>
+              <div className="-mt-10 px-6 pb-6">
               <div className="relative w-fit">
                 <UserAvatar
                   username={profile?.username ?? "?"}
@@ -197,7 +361,276 @@ export function UserSettingsModal({ onClose }: { onClose: () => void }) {
             <LogOut className="size-4" />
             Sair da conta
           </button>
-        </div>
+          </div>
+        )}
+
+        {activeTab === "voice" && (
+          <div className="animate-fade-up max-w-2xl">
+            <h2 className="text-balance-tight text-xl font-bold">Voz e Vídeo</h2>
+            <form onSubmit={handleSaveAudio} className="mt-6 space-y-6">
+              <div className="rounded-xl bg-channels p-6">
+                <div className="flex items-center gap-3 mb-4">
+                  <Mic className="size-5 text-primary" />
+                  <h3 className="font-semibold">Entrada de Áudio</h3>
+                </div>
+                <Field label="Dispositivo de entrada">
+                  <select value={inputDevice} onChange={(e) => setInputDevice(e.target.value)} className="w-full rounded-lg bg-message-input px-3 py-2.5 text-sm outline-none ring-1 ring-transparent transition-all focus:ring-primary/60">
+                    <option value="default">Padrão do sistema</option>
+                    <option value="headset">Headset</option>
+                  </select>
+                </Field>
+                <div className="mt-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">Volume de entrada</span>
+                    <span className="text-sm text-muted-foreground">{inputVolume}%</span>
+                  </div>
+                  <input type="range" min="0" max="100" value={inputVolume} onChange={(e) => setInputVolume(Number(e.target.value))} className="w-full accent-primary" />
+                </div>
+              </div>
+              <div className="rounded-xl bg-channels p-6">
+                <div className="flex items-center gap-3 mb-4">
+                  <Volume2 className="size-5 text-primary" />
+                  <h3 className="font-semibold">Saída de Áudio</h3>
+                </div>
+                <Field label="Dispositivo de saída">
+                  <select value={outputDevice} onChange={(e) => setOutputDevice(e.target.value)} className="w-full rounded-lg bg-message-input px-3 py-2.5 text-sm outline-none ring-1 ring-transparent transition-all focus:ring-primary/60">
+                    <option value="default">Padrão do sistema</option>
+                    <option value="headset">Headset</option>
+                  </select>
+                </Field>
+                <div className="mt-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">Volume de saída</span>
+                    <span className="text-sm text-muted-foreground">{outputVolume}%</span>
+                  </div>
+                  <input type="range" min="0" max="100" value={outputVolume} onChange={(e) => setOutputVolume(Number(e.target.value))} className="w-full accent-primary" />
+                </div>
+              </div>
+              <div className="rounded-xl bg-channels p-6">
+                <div className="flex items-center gap-3 mb-4">
+                  <Video className="size-5 text-primary" />
+                  <h3 className="font-semibold">Tipo de Transmissão Padrão</h3>
+                </div>
+                <p className="text-sm text-muted-foreground mb-4">Escolha o modo padrão ao entrar em uma chamada</p>
+                <div className="grid grid-cols-2 gap-3">
+                  <button type="button" onClick={() => setTransmissionMode("voice")} className={`flex flex-col items-center gap-2 rounded-lg p-4 transition-all ${transmissionMode === "voice" ? "bg-primary text-primary-foreground ring-2 ring-primary" : "bg-message-input hover:bg-accent"}`}>
+                    <Mic className="size-6" />
+                    <span className="text-sm font-medium">Apenas Voz</span>
+                  </button>
+                  <button type="button" onClick={() => setTransmissionMode("video")} className={`flex flex-col items-center gap-2 rounded-lg p-4 transition-all ${transmissionMode === "video" ? "bg-primary text-primary-foreground ring-2 ring-primary" : "bg-message-input hover:bg-accent"}`}>
+                    <Video className="size-6" />
+                    <span className="text-sm font-medium">Voz e Vídeo</span>
+                  </button>
+                </div>
+              </div>
+              <div className="rounded-xl bg-channels p-6">
+                <div className="flex items-center gap-3 mb-4">
+                  <Monitor className="size-5 text-primary" />
+                  <h3 className="font-semibold">Processamento de Áudio</h3>
+                </div>
+                <div className="space-y-4">
+                  <label className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium">Supressão de ruído</p>
+                      <p className="text-xs text-muted-foreground">Remove ruídos de fundo</p>
+                    </div>
+                    <button type="button" onClick={() => setNoiseSuppression(!noiseSuppression)} className={`relative h-6 w-11 rounded-full transition-colors ${noiseSuppression ? "bg-primary" : "bg-message-input"}`}>
+                      <span className={`absolute top-1 h-4 w-4 rounded-full bg-white transition-transform ${noiseSuppression ? "left-6" : "left-1"}`} />
+                    </button>
+                  </label>
+                  <label className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium">Cancelamento de eco</p>
+                      <p className="text-xs text-muted-foreground">Elimina o eco do áudio</p>
+                    </div>
+                    <button type="button" onClick={() => setEchoCancellation(!echoCancellation)} className={`relative h-6 w-11 rounded-full transition-colors ${echoCancellation ? "bg-primary" : "bg-message-input"}`}>
+                      <span className={`absolute top-1 h-4 w-4 rounded-full bg-white transition-transform ${echoCancellation ? "left-6" : "left-1"}`} />
+                    </button>
+                  </label>
+                </div>
+              </div>
+              {audioSaved && <p className="text-sm text-[#3ba55d]">Configurações de áudio salvas!</p>}
+              <button disabled={audioSaving} className="flex items-center justify-center gap-2 rounded-lg bg-primary px-6 py-2.5 text-sm font-semibold text-primary-foreground transition-all hover:bg-primary/90 disabled:opacity-60">
+                {audioSaving && <Loader2 className="size-4 animate-spin" />} Salvar configurações de áudio
+              </button>
+            </form>
+          </div>
+        )}
+
+        {activeTab === "notifications" && (
+          <div className="animate-fade-up max-w-2xl">
+            <h2 className="text-balance-tight text-xl font-bold">Notificações</h2>
+
+            <div className="mt-6 space-y-6">
+              {notifications.permission !== "granted" && (
+                <div className="rounded-2xl bg-primary/10 border border-primary/20 p-6">
+                  <div className="flex items-center gap-4">
+                    <div className="flex items-center justify-center w-12 h-12 rounded-xl bg-primary/20">
+                      <BellRing className="size-6 text-primary" />
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="font-semibold">Ative as notificações</h3>
+                      <p className="text-sm text-muted-foreground">Permita notificações para receber alertas mesmo com o site fechado.</p>
+                    </div>
+                    <button onClick={() => notifications.requestPermission()} className="rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground transition-all hover:bg-primary/90">
+                      Ativar
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {notifications.permission === "granted" && (
+                <div className="flex items-center gap-2 rounded-lg bg-[#3ba55d]/10 px-4 py-3 text-sm text-[#3ba55d]">
+                  <Check className="size-4" />
+                  Notificações ativadas - você receberá alertas mesmo com o site fechado
+                </div>
+              )}
+
+              <div className="rounded-2xl bg-channels p-6 shadow-[0_8px_24px_-12px_rgba(0,0,0,0.5)]">
+                <div className="flex items-center gap-3 mb-6">
+                  <Bell className="size-5 text-primary" />
+                  <h3 className="font-semibold">Configurações gerais</h3>
+                </div>
+                <div className="space-y-4">
+                  <label className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium">Ativar notificações</p>
+                      <p className="text-xs text-muted-foreground">Receber notificações do Concord</p>
+                    </div>
+                    <button type="button" onClick={() => notifications.saveSettings({ enabled: !notifications.settings.enabled })} className={`relative h-6 w-11 rounded-full transition-colors ${notifications.settings.enabled ? "bg-primary" : "bg-message-input"}`}>
+                      <span className={`absolute top-1 h-4 w-4 rounded-full bg-white transition-transform ${notifications.settings.enabled ? "left-6" : "left-1"}`} />
+                    </button>
+                  </label>
+                  <label className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium">Notificações na área de trabalho</p>
+                      <p className="text-xs text-muted-foreground">Exibir pop-ups de notificação</p>
+                    </div>
+                    <button type="button" onClick={() => notifications.saveSettings({ desktopNotifications: !notifications.settings.desktopNotifications })} className={`relative h-6 w-11 rounded-full transition-colors ${notifications.settings.desktopNotifications ? "bg-primary" : "bg-message-input"}`}>
+                      <span className={`absolute top-1 h-4 w-4 rounded-full bg-white transition-transform ${notifications.settings.desktopNotifications ? "left-6" : "left-1"}`} />
+                    </button>
+                  </label>
+                  <label className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium">Mostrar prévia da mensagem</p>
+                      <p className="text-xs text-muted-foreground">Exibir conteúdo na notificação</p>
+                    </div>
+                    <button type="button" onClick={() => notifications.saveSettings({ showPreview: !notifications.settings.showPreview })} className={`relative h-6 w-11 rounded-full transition-colors ${notifications.settings.showPreview ? "bg-primary" : "bg-message-input"}`}>
+                      <span className={`absolute top-1 h-4 w-4 rounded-full bg-white transition-transform ${notifications.settings.showPreview ? "left-6" : "left-1"}`} />
+                    </button>
+                  </label>
+                </div>
+              </div>
+
+              <div className="rounded-2xl bg-channels p-6 shadow-[0_8px_24px_-12px_rgba(0,0,0,0.5)]">
+                <div className="flex items-center gap-3 mb-6">
+                  <BellRing className="size-5 text-primary" />
+                  <h3 className="font-semibold">Tipos de notificação</h3>
+                </div>
+                <div className="space-y-4">
+                  <label className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                        <MessageSquare className="size-4 text-primary" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium">Mensagens em servidores</p>
+                        <p className="text-xs text-muted-foreground">Notificar de novas mensagens</p>
+                      </div>
+                    </div>
+                    <button type="button" onClick={() => notifications.saveSettings({ messageNotifications: !notifications.settings.messageNotifications })} className={`relative h-6 w-11 rounded-full transition-colors ${notifications.settings.messageNotifications ? "bg-primary" : "bg-message-input"}`}>
+                      <span className={`absolute top-1 h-4 w-4 rounded-full bg-white transition-transform ${notifications.settings.messageNotifications ? "left-6" : "left-1"}`} />
+                    </button>
+                  </label>
+                  <label className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                        <UserRound className="size-4 text-primary" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium">Mensagens diretas</p>
+                        <p className="text-xs text-muted-foreground">Notificar de DMs de amigos</p>
+                      </div>
+                    </div>
+                    <button type="button" onClick={() => notifications.saveSettings({ dmNotifications: !notifications.settings.dmNotifications })} className={`relative h-6 w-11 rounded-full transition-colors ${notifications.settings.dmNotifications ? "bg-primary" : "bg-message-input"}`}>
+                      <span className={`absolute top-1 h-4 w-4 rounded-full bg-white transition-transform ${notifications.settings.dmNotifications ? "left-6" : "left-1"}`} />
+                    </button>
+                  </label>
+                  <label className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                        <Phone className="size-4 text-primary" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium">Chamadas</p>
+                        <p className="text-xs text-muted-foreground">Notificar de chamadas recebidas</p>
+                      </div>
+                    </div>
+                    <button type="button" onClick={() => notifications.saveSettings({ callNotifications: !notifications.settings.callNotifications })} className={`relative h-6 w-11 rounded-full transition-colors ${notifications.settings.callNotifications ? "bg-primary" : "bg-message-input"}`}>
+                      <span className={`absolute top-1 h-4 w-4 rounded-full bg-white transition-transform ${notifications.settings.callNotifications ? "left-6" : "left-1"}`} />
+                    </button>
+                  </label>
+                  <label className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                        <UserPlus className="size-4 text-primary" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium">Pedidos de amizade</p>
+                        <p className="text-xs text-muted-foreground">Notificar de novos pedidos</p>
+                      </div>
+                    </div>
+                    <button type="button" onClick={() => notifications.saveSettings({ friendRequestNotifications: !notifications.settings.friendRequestNotifications })} className={`relative h-6 w-11 rounded-full transition-colors ${notifications.settings.friendRequestNotifications ? "bg-primary" : "bg-message-input"}`}>
+                      <span className={`absolute top-1 h-4 w-4 rounded-full bg-white transition-transform ${notifications.settings.friendRequestNotifications ? "left-6" : "left-1"}`} />
+                    </button>
+                  </label>
+                </div>
+              </div>
+
+              <div className="rounded-2xl bg-channels p-6 shadow-[0_8px_24px_-12px_rgba(0,0,0,0.5)]">
+                <div className="flex items-center gap-3 mb-6">
+                  <Volume1 className="size-5 text-primary" />
+                  <h3 className="font-semibold">Som das notificações</h3>
+                </div>
+                <div className="space-y-4">
+                  <label className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium">Sons ativados</p>
+                      <p className="text-xs text-muted-foreground">Reproduzir sons de notificação</p>
+                    </div>
+                    <button type="button" onClick={() => notifications.saveSettings({ soundEnabled: !notifications.settings.soundEnabled })} className={`relative h-6 w-11 rounded-full transition-colors ${notifications.settings.soundEnabled ? "bg-primary" : "bg-message-input"}`}>
+                      <span className={`absolute top-1 h-4 w-4 rounded-full bg-white transition-transform ${notifications.settings.soundEnabled ? "left-6" : "left-1"}`} />
+                    </button>
+                  </label>
+                  <div>
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">Volume de notificação</span>
+                      <span className="text-sm text-muted-foreground">{notifications.settings.notificationVolume}%</span>
+                    </div>
+                    <input type="range" min="0" max="100" value={notifications.settings.notificationVolume} onChange={(e) => notifications.saveSettings({ notificationVolume: Number(e.target.value) })} className="w-full accent-primary" />
+                  </div>
+                  <div>
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">Volume de chamada</span>
+                      <span className="text-sm text-muted-foreground">{notifications.settings.callVolume}%</span>
+                    </div>
+                    <input type="range" min="0" max="100" value={notifications.settings.callVolume} onChange={(e) => notifications.saveSettings({ callVolume: Number(e.target.value) })} className="w-full accent-primary" />
+                  </div>
+                  <div>
+                    <span className="text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground block mb-2">Toque de notificação</span>
+                    <div className="grid grid-cols-4 gap-2">
+                      {(['default', 'chime', 'bell', 'pop'] as const).map((tone) => (
+                        <button key={tone} type="button" onClick={() => notifications.saveSettings({ ringtone: tone })} className={`rounded-lg py-2.5 text-xs font-medium transition-all ${notifications.settings.ringtone === tone ? "bg-primary text-primary-foreground" : "bg-message-input hover:bg-accent"}`}>
+                          {tone.charAt(0).toUpperCase() + tone.slice(1)}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </section>
     </div>
   );

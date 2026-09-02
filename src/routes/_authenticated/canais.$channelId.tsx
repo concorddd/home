@@ -16,6 +16,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { UserAvatar } from "@/components/UserAvatar";
+import { StatusDot } from "@/components/StatusDot";
 import { UserSettingsModal } from "@/components/UserSettingsModal";
 import { InviteModal } from "@/components/InviteModal";
 import { ServerSettingsModal } from "@/components/ServerSettingsModal";
@@ -56,6 +57,7 @@ type Author = {
   username: string;
   display_name: string | null;
   avatar_url: string | null;
+  status?: string | null;
 };
 type Message = {
   id: string;
@@ -161,7 +163,7 @@ function ChannelPage() {
       if (ids.length) {
         const { data: profs } = await supabase
           .from("profiles")
-          .select("id, username, display_name, avatar_url")
+          .select("id, username, display_name, avatar_url, status")
           .in("id", ids);
         const list = (profs as Author[]) ?? [];
         writeCache(`members:${serverId}`, list);
@@ -436,7 +438,7 @@ function ChannelPage() {
               username={profile?.username ?? "?"}
               avatarUrl={profile?.avatar_url ?? null}
             />
-            <span className="absolute -bottom-0.5 -right-0.5 size-3 rounded-full border-2 border-servers bg-[#3ba55d]" />
+            <StatusDot status={profile?.status} ring="border-servers" />
           </div>
           <div className="min-w-0 flex-1">
             <p className="truncate text-[13px] font-medium tracking-tight">
@@ -577,7 +579,7 @@ function ChannelPage() {
             >
               <div className="relative">
                 <UserAvatar username={m.username} avatarUrl={m.avatar_url} />
-                <span className="absolute -bottom-0.5 -right-0.5 size-3 rounded-full border-2 border-channels bg-[#3ba55d]" />
+                <StatusDot status={m.status} ring="border-channels" />
               </div>
               <span className="text-sm tracking-tight text-muted-foreground">
                 {m.display_name || m.username}
