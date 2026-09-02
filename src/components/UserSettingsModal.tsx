@@ -81,7 +81,7 @@ export function UserSettingsModal({ onClose }: { onClose: () => void }) {
 
   return (
     <div className="fixed inset-0 z-50 flex bg-background">
-      <nav className="flex w-full max-w-[240px] shrink-0 flex-col gap-1 bg-channels px-3 py-14 sm:pl-8">
+      <nav className="hidden w-full max-w-[240px] shrink-0 flex-col gap-1 bg-channels px-3 py-14 sm:pl-8 md:flex">
         <p className="px-2 pb-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
           Configurações do usuário
         </p>
@@ -99,11 +99,11 @@ export function UserSettingsModal({ onClose }: { onClose: () => void }) {
         </button>
       </nav>
 
-      <section className="relative flex-1 overflow-y-auto px-6 py-14 sm:px-16">
+      <section className="relative flex-1 overflow-y-auto overscroll-contain px-4 pb-[calc(3rem_+_env(safe-area-inset-bottom))] pt-4 sm:px-16 sm:py-14">
         <button
           onClick={onClose}
           aria-label="Fechar configurações"
-          className="absolute right-6 top-14 flex size-9 items-center justify-center rounded-full border border-muted-foreground/40 text-muted-foreground transition-all duration-200 hover:bg-accent hover:text-foreground"
+          className="fixed right-4 top-4 z-20 flex size-9 items-center justify-center rounded-full border border-muted-foreground/40 bg-background/80 text-muted-foreground backdrop-blur transition-all duration-200 hover:bg-accent hover:text-foreground md:absolute md:right-6 md:top-14 md:bg-transparent md:backdrop-blur-none"
         >
           <X className="size-5" />
         </button>
@@ -123,7 +123,7 @@ export function UserSettingsModal({ onClose }: { onClose: () => void }) {
                 <button
                   onClick={() => fileRef.current?.click()}
                   aria-label="Alterar foto de perfil"
-                  className="absolute inset-0 flex items-center justify-center rounded-full bg-black/60 opacity-0 transition-opacity duration-200 hover:opacity-100"
+                  className="absolute inset-0 flex items-center justify-center rounded-full bg-black/60 opacity-100 transition-opacity duration-200 hover:opacity-100 md:opacity-0"
                 >
                   {uploading ? (
                     <Loader2 className="size-5 animate-spin" />
@@ -147,7 +147,7 @@ export function UserSettingsModal({ onClose }: { onClose: () => void }) {
                     maxLength={32}
                     value={username}
                     onChange={(e) => setUsername(e.target.value)}
-                    className="w-full rounded-lg bg-message-input px-3 py-2.5 text-sm outline-none ring-1 ring-transparent transition-all focus:ring-primary/60"
+                    className="w-full rounded-lg bg-message-input px-3 py-2.5 text-base outline-none ring-1 ring-transparent transition-all focus:ring-primary/60 md:text-sm"
                   />
                 </Field>
                 <Field label="Nome de exibição">
@@ -155,14 +155,14 @@ export function UserSettingsModal({ onClose }: { onClose: () => void }) {
                     maxLength={64}
                     value={displayName}
                     onChange={(e) => setDisplayName(e.target.value)}
-                    className="w-full rounded-lg bg-message-input px-3 py-2.5 text-sm outline-none ring-1 ring-transparent transition-all focus:ring-primary/60"
+                    className="w-full rounded-lg bg-message-input px-3 py-2.5 text-base outline-none ring-1 ring-transparent transition-all focus:ring-primary/60 md:text-sm"
                   />
                 </Field>
                 <Field label="Status">
                   <select
                     value={status}
                     onChange={(e) => setStatus(e.target.value)}
-                    className="w-full rounded-lg bg-message-input px-3 py-2.5 text-sm outline-none ring-1 ring-transparent transition-all focus:ring-primary/60"
+                    className="w-full rounded-lg bg-message-input px-3 py-2.5 text-base outline-none ring-1 ring-transparent transition-all focus:ring-primary/60 md:text-sm"
                   >
                     <option value="online">Online</option>
                     <option value="ausente">Ausente</option>
@@ -182,13 +182,21 @@ export function UserSettingsModal({ onClose }: { onClose: () => void }) {
 
                 <button
                   disabled={saving}
-                  className="flex items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground transition-all hover:bg-primary/90 disabled:opacity-60"
+                  className="flex w-full items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground transition-all hover:bg-primary/90 disabled:opacity-60 md:w-fit"
                 >
                   {saving && <Loader2 className="size-4 animate-spin" />} Salvar alterações
                 </button>
               </form>
             </div>
           </div>
+
+          <button
+            onClick={handleSignOut}
+            className="mt-4 flex w-full items-center justify-center gap-2 rounded-lg border border-destructive/30 px-4 py-2.5 text-sm text-destructive transition-colors hover:bg-destructive/10 md:hidden"
+          >
+            <LogOut className="size-4" />
+            Sair da conta
+          </button>
         </div>
       </section>
     </div>
