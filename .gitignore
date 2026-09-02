@@ -13,6 +13,8 @@ lerna-debug.log*
 !.env.example
 
 node_modules
+# exceção: app Expo embutido em /concord (pasta de fontes chama-se node_modules)
+!public/concord/**/node_modules/
 dist
 dist-ssr
 .output
