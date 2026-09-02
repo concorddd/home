@@ -1,9 +1,14 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { lovable } from "@/integrations/lovable";
 import { useAuth } from "@/hooks/useAuth";
+import {
+  createGoogleNonce,
+  GOOGLE_CLIENT_ID,
+  loadGoogleIdentity,
+  type GoogleCredentialResponse,
+} from "@/integrations/google";
 
 export const Route = createFileRoute("/login")({
   ssr: false,
@@ -32,6 +37,9 @@ type UsernameState = "idle" | "checking" | "available" | "taken" | "invalid";
 function LoginPage() {
   const navigate = useNavigate();
   const { session, loading: authLoading } = useAuth();
+  const gisRef = useRef<HTMLDivElement | null>(null);
+  const googleNonceRef = useRef<string | null>(null);
+  const [googleReady, setGoogleReady] = useState(false);
   const [mode, setMode] = useState<"signin" | "signup">("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -69,6 +77,42 @@ function LoginPage() {
     return () => clearTimeout(timer);
   }, [username, mode]);
 
+  // Google Identity Services: botão oficial do Google em popup, sem redirect.
+  // O ID token do popup é trocado por uma sessão via supabase.auth.signInWithIdToken.
+  useEffect(() => {
+    if (!GOOGLE_CLIENT_ID) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const google = await loadGoogleIdentity();
+        const { raw, hashed } = await createGoogleNonce();
+        if (cancelled) return;
+        googleNonceRef.current = raw;
+        google.initialize({
+          client_id: GOOGLE_CLIENT_ID,
+          nonce: hashed,
+          callback: (response) => {
+            void handleGoogleCredential(response);
+          },
+        });
+        if (gisRef.current) {
+          google.renderButton(gisRef.current, {
+            theme: "filled_blue",
+            size: "large",
+            text: "continue_with",
+            shape: "pill",
+            locale: "pt-BR",
+          });
+        }
+        if (!cancelled) setGoogleReady(true);
+      } catch {
+        if (!cancelled) setGoogleReady(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -107,18 +151,25 @@ function LoginPage() {
     }
   }
 
-  async function handleGoogle() {
+  async function handleGoogleCredential(response: GoogleCredentialResponse) {
+    if (!response.credential) {
+      setError("Não foi possível confirmar sua conta Google. Tente novamente.");
+      return;
+    }
     setError(null);
+    setBusy(true);
     try {
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-          redirectTo: window.location.origin
-        }
+      const { error } = await supabase.auth.signInWithIdToken({
+        provider: "google",
+        token: response.credential,
+        ...(googleNonceRef.current ? { nonce: googleNonceRef.current } : {}),
       });
       if (error) throw error;
+      navigate({ to: "/canais", replace: true });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Falha no login com Google.");
+    } finally {
+      setBusy(false);
     }
   }
 
@@ -217,13 +268,25 @@ function LoginPage() {
           <span className="h-px flex-1 bg-border" />
         </div>
 
-        <button
-          onClick={handleGoogle}
-          className="flex w-full items-center justify-center gap-3 rounded-lg bg-secondary px-4 py-2.5 text-sm font-medium transition-all duration-200 hover:bg-accent"
-        >
-          <GoogleIcon />
-          Continuar com Google
-        </button>
+        <div className={googleReady ? "flex justify-center" : "hidden"}>
+          <div ref={gisRef} />
+        </div>
+        {!googleReady && (
+          <button
+            type="button"
+            onClick={() =>
+              setError(
+                GOOGLE_CLIENT_ID
+                  ? "Não foi possível carregar o login do Google. Atualize a página e tente de novo."
+                  : "O login com Google ainda não está configurado neste deploy. Use e-mail e senha por enquanto.",
+              )
+            }
+            className="flex w-full items-center justify-center gap-3 rounded-lg bg-secondary px-4 py-2.5 text-sm font-medium transition-all duration-200 hover:bg-accent"
+          >
+            <GoogleIcon />
+            Continuar com Google
+          </button>
+        )}
 
         <p className="mt-6 text-center text-sm text-muted-foreground">
           {mode === "signin" ? "Precisando de uma conta?" : "Já tem uma conta?"}{" "}
