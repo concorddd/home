@@ -45,7 +45,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         .select("id, username, display_name, avatar_url, status, created_at")
         .eq("id", id)
         .maybeSingle();
-      data = fallback.data;
+      data = fallback.data as typeof data;
     }
 
     setProfile((data as Profile) ?? null);

@@ -14,29 +14,77 @@ export type Database = {
   }
   public: {
     Tables: {
-      channels: {
+      channel_categories: {
         Row: {
           created_at: string
           id: string
-          kind: string
           name: string
-          server_id: string | null
+          position: number
+          server_id: string
         }
         Insert: {
           created_at?: string
           id?: string
-          kind?: string
           name: string
-          server_id?: string | null
+          position?: number
+          server_id: string
         }
         Update: {
           created_at?: string
           id?: string
+          name?: string
+          position?: number
+          server_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "channel_categories_server_id_fkey"
+            columns: ["server_id"]
+            isOneToOne: false
+            referencedRelation: "servers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      channels: {
+        Row: {
+          category_id: string | null
+          created_at: string
+          id: string
+          is_private: boolean
+          kind: string
+          name: string
+          position: number
+          server_id: string | null
+        }
+        Insert: {
+          category_id?: string | null
+          created_at?: string
+          id?: string
+          is_private?: boolean
+          kind?: string
+          name: string
+          position?: number
+          server_id?: string | null
+        }
+        Update: {
+          category_id?: string | null
+          created_at?: string
+          id?: string
+          is_private?: boolean
           kind?: string
           name?: string
+          position?: number
           server_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "channels_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "channel_categories"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "channels_server_id_fkey"
             columns: ["server_id"]
@@ -55,6 +103,7 @@ export type Database = {
           content: string
           created_at: string
           id: string
+          kind: string
           read: boolean
           recipient_id: string
           sender_id: string
@@ -67,6 +116,7 @@ export type Database = {
           content?: string
           created_at?: string
           id?: string
+          kind?: string
           read?: boolean
           recipient_id: string
           sender_id: string
@@ -79,6 +129,7 @@ export type Database = {
           content?: string
           created_at?: string
           id?: string
+          kind?: string
           read?: boolean
           recipient_id?: string
           sender_id?: string

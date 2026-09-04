@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { Headphones, Mic, Settings, Users } from "lucide-react";
 import { UserAvatar } from "@/components/UserAvatar";
@@ -7,13 +7,30 @@ import { UserSettingsModal } from "@/components/UserSettingsModal";
 import { GuidedTour } from "@/components/GuidedTour";
 import { useAuth } from "@/hooks/useAuth";
 import { useFriends } from "@/hooks/useFriends";
+import { useNotifications } from "@/hooks/useNotifications";
 import { useDmInbox, UnreadBadge } from "@/hooks/useInbox";
 
 export function DirectSidebar({ activeUserId }: { activeUserId?: string | null }) {
-  const { profile } = useAuth();
-  const { friends } = useFriends();
+  const { profile, user } = useAuth();
+  const { friends, incoming } = useFriends();
+  const { playNotificationSound, notifyFriendRequest } = useNotifications(user?.id);
   const { summaries } = useDmInbox();
   const [settingsOpen, setSettingsOpen] = useState(false);
+
+  // Som + notificação quando chega um novo pedido de amizade
+  const prevIncomingRef = useRef<number | null>(null);
+  useEffect(() => {
+    if (prevIncomingRef.current === null) {
+      prevIncomingRef.current = incoming.length;
+      return;
+    }
+    if (incoming.length > prevIncomingRef.current) {
+      playNotificationSound();
+      const latest = incoming[0]?.profile;
+      notifyFriendRequest(latest?.display_name || latest?.username || "Alguém");
+    }
+    prevIncomingRef.current = incoming.length;
+  }, [incoming, playNotificationSound, notifyFriendRequest]);
 
   const ordered = friends
     .filter((f) => f.profile)
@@ -34,9 +51,11 @@ export function DirectSidebar({ activeUserId }: { activeUserId?: string | null }
         <Link
           to="/amigos"
           data-tour="friends"
-          className="mb-4 flex w-full items-center gap-2 rounded-lg px-2 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent/50 hover:text-foreground [&.active]:bg-accent [&.active]:text-foreground"
+          className="relative mb-4 flex w-full items-center gap-2 rounded-lg px-2 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent/50 hover:text-foreground [&.active]:bg-accent [&.active]:text-foreground"
         >
-          <Users className="size-4" /> Amigos
+          <Users className="size-4" />
+          <span className="flex-1">Amigos</span>
+          <UnreadBadge count={incoming.length} />
         </Link>
 
         <p className="px-2 pb-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">

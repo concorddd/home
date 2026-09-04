@@ -14,6 +14,7 @@ import { reportLovableError } from "../lib/lovable-error-reporting";
 import { AuthProvider } from "../hooks/useAuth";
 import { RealtimeSyncProvider } from "../hooks/useRealtimeSync";
 import { CallProvider } from "../hooks/useCalls";
+import { NotificationBridge } from "../components/NotificationBridge";
 
 
 function NotFoundComponent() {
@@ -124,6 +125,7 @@ function RootComponent() {
       <AuthProvider>
         <RealtimeSyncProvider>
           <CallProvider>
+          <NotificationBridge />
           {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
           <Outlet />
           </CallProvider>

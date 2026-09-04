@@ -13,6 +13,7 @@ export type CallStatus =
   | "incoming"
   | "connecting"
   | "active"
+  | "ended"
   | "error";
 
 export type Signal =
@@ -67,6 +68,8 @@ export const SCREEN_QUALITIES: {
 export type CallContextValue = {
   status: CallStatus;
   peer: CallPeer | null;
+  /** Nome de quem encerrou a chamada ("Você" ou o nome do peer). */
+  endedBy: string | null;
   error: string | null;
   micOn: boolean;
   camOn: boolean;

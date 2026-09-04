@@ -16,12 +16,14 @@ import {
   VolumeX,
 } from "lucide-react";
 import { UserAvatar } from "@/components/UserAvatar";
+import { useAuth } from "@/hooks/useAuth";
 import { useCalls, SCREEN_QUALITIES, type ScreenQuality } from "@/hooks/call-context";
 
 export function CallOverlay() {
   const {
     status,
     peer,
+    endedBy,
     error,
     micOn,
     camOn,
@@ -48,7 +50,8 @@ export function CallOverlay() {
   const [remoteVol, setRemoteVol] = useState(1);
   const [remoteMuted, setRemoteMuted] = useState(false);
   const [remoteFs, setRemoteFs] = useState(false);
-  const inCall = status === "active" || status === "connecting" || status === "calling";
+  const { profile } = useAuth();
+  const inCall = status === "active" || status === "connecting";
 
   // reanexa os streams sempre que o layout (cheio/minimizado) troca
   useEffect(() => {
@@ -150,6 +153,28 @@ export function CallOverlay() {
               Fechar
             </button>
           </div>
+        ) : status === "calling" ? (
+          <div className="flex h-full flex-col items-center justify-center gap-4 text-center">
+            <UserAvatar
+              username={peer?.username ?? "?"}
+              avatarUrl={peer?.avatar_url ?? null}
+              className="size-24 animate-pulse text-xl"
+            />
+            <div>
+              <p className="text-lg font-semibold">{peerName}</p>
+              <p className="text-sm text-muted-foreground">
+                Chamando… aguardando resposta
+              </p>
+            </div>
+            <button
+              onClick={hangUp}
+              title="Encerrar chamada"
+              aria-label="Encerrar chamada"
+              className="mt-2 flex size-16 items-center justify-center rounded-full bg-destructive text-destructive-foreground transition-transform hover:scale-105 sm:size-14"
+            >
+              <PhoneOff className="size-6" />
+            </button>
+          </div>
         ) : status === "incoming" ? (
           <div className="flex h-full flex-col items-center justify-center gap-4 text-center">
             <UserAvatar
@@ -181,6 +206,16 @@ export function CallOverlay() {
                 <PhoneOff className="size-6" />
               </button>
             </div>
+          </div>
+        ) : status === "ended" ? (
+          <div className="flex h-full flex-col items-center justify-center gap-3 text-center">
+            <PhoneOff className="size-8 text-muted-foreground" />
+            <p className="text-lg font-semibold">
+              {endedBy === "Você"
+                ? "Você encerrou a chamada."
+                : `${endedBy ?? "A chamada"} encerrou a chamada.`}
+            </p>
+            <p className="text-sm text-muted-foreground">Esta tela fechará em instantes…</p>
           </div>
         ) : (
           <div className="relative h-full sm:grid sm:h-full sm:grid-cols-2 sm:gap-4">
@@ -246,8 +281,9 @@ export function CallOverlay() {
             <div className="absolute bottom-4 right-4 z-10 w-28 sm:static sm:w-auto">
               <Tile
                 label="Você"
+                username={profile?.username ?? "?"}
                 visible={camOn}
-                avatar={null}
+                avatar={profile?.avatar_url ?? null}
                 className="aspect-video rounded-xl shadow-xl"
               >
                 <video
@@ -262,15 +298,15 @@ export function CallOverlay() {
           </div>
         )}
 
-        {(status === "calling" || status === "connecting") && (
+        {status === "connecting" && (
           <p className="flex items-center justify-center gap-2 pt-4 text-sm text-muted-foreground">
             <Loader2 className="size-4 animate-spin" />
-            {status === "calling" ? `Chamando ${peerName}…` : "Conectando…"}
+            Conectando…
           </p>
         )}
       </div>
 
-      {status !== "incoming" && status !== "error" && (
+      {status !== "incoming" && status !== "error" && status !== "calling" && status !== "ended" && (
         <div className="shrink-0 border-t border-black/30 bg-[#232428] px-6 py-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
           <div className="relative flex items-center justify-center gap-4 sm:gap-3">
             <Dock
@@ -367,12 +403,14 @@ function QualityMenu({
 
 function Tile({
   label,
+  username,
   visible,
   avatar,
   className = "aspect-video rounded-xl",
   children,
 }: {
   label: string;
+  username?: string;
   visible: boolean;
   avatar: string | null;
   className?: string;
@@ -383,7 +421,7 @@ function Tile({
       <div className={visible ? "size-full" : "hidden"}>{children}</div>
       {!visible && (
         <div className="flex size-full items-center justify-center">
-          <UserAvatar username={label} avatarUrl={avatar} className="size-20 text-lg" />
+          <UserAvatar username={username ?? label} avatarUrl={avatar} className="size-20 text-lg" />
         </div>
       )}
       <span className="absolute bottom-2 left-2 rounded-md bg-black/60 px-2 py-1 text-xs font-medium">

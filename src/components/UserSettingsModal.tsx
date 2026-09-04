@@ -55,32 +55,35 @@ export function UserSettingsModal({ onClose }: { onClose: () => void }) {
     setUploadingBanner(true);
     setError(null);
 
-    // Garante que o bucket "banners" exista (cria com service role se necessário)
+    // Garante que o bucket "banners" exista (cria com service role se disponível;
+    // no localhost sem service role a chamada falha e seguimos com fallback).
     try {
-      await ensureBuckets({ buckets: ["banners"] });
+      await ensureBuckets({ data: { buckets: ["banners"] } });
     } catch {
-      // Se a server function falhar, seguimos tentando o upload mesmo assim.
+      // ignorado — usamos o bucket "avatars" como fallback abaixo se precisar.
     }
 
     const ext = file.name.split(".").pop() ?? "png";
     const path = `${user.id}/banner-${Date.now()}.${ext}`;
+
+    // 1) Tenta enviar para o bucket "banners".
+    let bucket = "banners";
     let upErr: { message: string } | null = null;
-    let uploadResult = await supabase.storage.from("banners").upload(path, file, {
+    const first = await supabase.storage.from(bucket).upload(path, file, {
       upsert: true,
       contentType: file.type,
     });
-    upErr = uploadResult.error;
+    upErr = first.error;
 
-    // Tenta de novo caso o bucket tivesse acabado de ser criado (propagação)
+    // 2) Se o bucket "banners" não existir/estiver inacessível, cai para o
+    //    bucket "avatars" (que já existe e o usuário já usa para o avatar).
     if (upErr) {
-      try {
-        await ensureBuckets({ buckets: ["banners"] });
-      } catch {}
-      uploadResult = await supabase.storage.from("banners").upload(path, file, {
+      bucket = "avatars";
+      const retry = await supabase.storage.from(bucket).upload(path, file, {
         upsert: true,
         contentType: file.type,
       });
-      upErr = uploadResult.error;
+      upErr = retry.error;
     }
 
     if (upErr) {
@@ -89,16 +92,36 @@ export function UserSettingsModal({ onClose }: { onClose: () => void }) {
       return;
     }
 
-    // Como o bucket é público, montamos a URL pública direto no objeto
-    const { data: publicUrlData } = supabase.storage.from("banners").getPublicUrl(path);
-    const publicUrl = publicUrlData.publicUrl;
+    // "banners" é público -> URL pública. "avatars" é privado -> URL assinada (1 ano).
+    let publicUrl: string;
+    if (bucket === "banners") {
+      const { data } = supabase.storage.from(bucket).getPublicUrl(path);
+      publicUrl = data.publicUrl;
+    } else {
+      const { data } = await supabase.storage
+        .from(bucket)
+        .createSignedUrl(path, 60 * 60 * 24 * 365);
+      if (!data?.signedUrl) {
+        setError("Não foi possível gerar a URL do banner.");
+        setUploadingBanner(false);
+        return;
+      }
+      publicUrl = data.signedUrl;
+    }
 
     const { error: updErr } = await supabase
       .from("profiles")
       .update({ banner_url: publicUrl })
       .eq("id", user.id);
-    if (updErr) setError(updErr.message);
-    else await refreshProfile();
+    if (updErr) {
+      setError(
+        updErr.message.includes("banner_url")
+          ? "A coluna banner_url ainda não existe no banco. Aplique a migration 20260901235000_add_banner_url.sql."
+          : updErr.message,
+      );
+    } else {
+      await refreshProfile();
+    }
     setUploadingBanner(false);
   }
 

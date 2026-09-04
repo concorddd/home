@@ -129,7 +129,7 @@ function LoginPage() {
     try {
       if (mode === "signin") {
         if (useUsername) {
-          const result = await loginUser({ username: loginIdentifier, password });
+          const result = await loginUser({ data: { username: loginIdentifier, password } });
           if (!result.ok) {
             throw new Error(result.error);
           }

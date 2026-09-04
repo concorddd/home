@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState, type ReactNode } from "react"
 import type { RealtimeChannel } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useNotifications } from "@/hooks/useNotifications";
 import { CallOverlay } from "@/components/CallOverlay";
 import { CallContext, ICE, type CallContextValue, type CallPeer, type CallStatus, type ScreenQuality, type Signal } from "@/hooks/call-context";
 
@@ -12,9 +13,16 @@ import { SCREEN_QUALITIES } from "@/hooks/call-context";
 export function CallProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
   const selfId = user?.id ?? null;
+  const {
+    playCallRingtone,
+    stopCallRingtone,
+    playRingbackTone,
+    stopRingbackTone,
+  } = useNotifications(user?.id);
 
   const [status, setStatus] = useState<CallStatus>("idle");
   const [peer, setPeer] = useState<CallPeer | null>(null);
+  const [endedBy, setEndedBy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [micOn, setMicOn] = useState(true);
   const [camOn, setCamOn] = useState(false);
@@ -35,6 +43,30 @@ export function CallProvider({ children }: { children: ReactNode }) {
   const renegotiatingRef = useRef(false);
   const localVideoRef = useRef<HTMLVideoElement | null>(null);
   const remoteVideoRef = useRef<HTMLVideoElement | null>(null);
+  const activeSinceRef = useRef<number | null>(null);
+
+  /** Registra o resultado da chamada como mensagem especial na DM. */
+  const logCall = useCallback(
+    async (event: "ended" | "missed", durationSec: number, startedAt: number | null) => {
+      const peerId = peerRef.current?.id;
+      if (!selfId || !peerId) return;
+      try {
+        await supabase.from("direct_messages").insert({
+          sender_id: selfId,
+          recipient_id: peerId,
+          kind: "call",
+          content: JSON.stringify({
+            event,
+            durationSec,
+            startedAt: startedAt ? new Date(startedAt).toISOString() : null,
+          }),
+        });
+      } catch {
+        /* log de chamada é best-effort */
+      }
+    },
+    [selfId],
+  );
 
   // ---- sinalização: envia para o canal pessoal do destinatário ----
   const signal = useCallback(async (to: string, msg: Signal) => {
@@ -67,6 +99,7 @@ export function CallProvider({ children }: { children: ReactNode }) {
     pendingIceRef.current = [];
     offerRef.current = null;
     renegotiatingRef.current = false;
+    activeSinceRef.current = null;
     setRemoteVideoOn(false);
     setCamOn(false);
     setMicOn(true);
@@ -83,9 +116,16 @@ export function CallProvider({ children }: { children: ReactNode }) {
 
   const hangUp = useCallback(() => {
     const to = peerRef.current?.id;
+    const startedAt = activeSinceRef.current;
+    const durationSec = startedAt
+      ? Math.max(1, Math.round((Date.now() - startedAt) / 1000))
+      : 0;
     if (to) void signal(to, { kind: "end", from: selfId ?? "" });
-    endLocal();
-  }, [endLocal, selfId, signal]);
+    if (to) void logCall(startedAt ? "ended" : "missed", durationSec, startedAt);
+    cleanup();
+    setStatus("ended");
+    setEndedBy("Você");
+  }, [cleanup, logCall, selfId, signal]);
 
   const flushIce = useCallback(async () => {
     const pc = pcRef.current;
@@ -146,7 +186,10 @@ export function CallProvider({ children }: { children: ReactNode }) {
       };
       pc.onconnectionstatechange = () => {
         if (pcRef.current !== pc) return;
-        if (pc.connectionState === "connected") setStatus("active");
+        if (pc.connectionState === "connected") {
+          if (activeSinceRef.current === null) activeSinceRef.current = Date.now();
+          setStatus("active");
+        }
         if (pc.connectionState === "failed") {
           setError("A conexão falhou. Tente novamente.");
           setStatus("error");
@@ -257,7 +300,15 @@ export function CallProvider({ children }: { children: ReactNode }) {
           return;
         }
         if (msg.kind === "end") {
-          endLocal();
+          const who =
+            peerRef.current?.display_name ||
+            peerRef.current?.username ||
+            "O outro usuário";
+          cleanup();
+          setPeer(null);
+          peerRef.current = null;
+          setStatus("ended");
+          setEndedBy(who);
         }
       })
       .subscribe();
@@ -275,6 +326,48 @@ export function CallProvider({ children }: { children: ReactNode }) {
       map.clear();
     };
   }, []);
+
+  // ---- sons da chamada ----
+  // Ringback ("dum-dum… dum-dum") enquanto estou chamando alguém.
+  useEffect(() => {
+    if (status !== "calling") return;
+    playRingbackTone();
+    return () => stopRingbackTone();
+  }, [status, playRingbackTone, stopRingbackTone]);
+
+  // Toque de chamada recebida.
+  useEffect(() => {
+    if (status !== "incoming") return;
+    playCallRingtone();
+    return () => stopCallRingtone();
+  }, [status, playCallRingtone, stopCallRingtone]);
+
+  // Tela "X encerrou a chamada" some sozinha depois de alguns segundos.
+  useEffect(() => {
+    if (status !== "ended") return;
+    const t = window.setTimeout(() => {
+      setStatus("idle");
+      setEndedBy(null);
+      setPeer(null);
+      peerRef.current = null;
+    }, 5000);
+    return () => window.clearTimeout(t);
+  }, [status]);
+
+  // Quem chama desiste se ninguém atender (45s), como no Discord.
+  useEffect(() => {
+    if (status !== "calling") return;
+    const t = window.setTimeout(() => {
+      const name =
+        peerRef.current?.display_name || peerRef.current?.username || "O usuário";
+      void logCall("missed", 0, null);
+      cleanup();
+      peerRef.current = null;
+      setError(`${name} não respondeu.`);
+      setStatus("error");
+    }, 45000);
+    return () => window.clearTimeout(t);
+  }, [status, cleanup, logCall]);
 
   const startCall = useCallback(
     async (target: CallPeer, video: boolean) => {
@@ -437,6 +530,7 @@ export function CallProvider({ children }: { children: ReactNode }) {
   const value: CallContextValue = {
     status,
     peer,
+    endedBy,
     error,
     micOn,
     camOn,
