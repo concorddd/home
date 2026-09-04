@@ -9,6 +9,8 @@ export type FriendProfile = {
   display_name: string | null;
   avatar_url: string | null;
   status: string;
+  is_online?: boolean;
+  last_active_at?: string;
 };
 
 export type FriendRequest = {
@@ -41,9 +43,9 @@ export function useFriends() {
     if (otherIds.length) {
       const { data: profs } = await supabase
         .from("profiles")
-        .select("id, username, display_name, avatar_url, status")
+        .select("id, username, display_name, avatar_url, status, is_online, last_active_at")
         .in("id", otherIds);
-      byId = new Map(((profs as FriendProfile[]) ?? []).map((p) => [p.id, p]));
+      byId = new Map(((profs as unknown as FriendProfile[]) ?? []).map((p) => [p.id, p]));
     }
     const mapped: FriendRequest[] = rows.map((r) => ({
       ...r,

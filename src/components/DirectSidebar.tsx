@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { Headphones, Mic, Settings, Users } from "lucide-react";
 import { UserAvatar } from "@/components/UserAvatar";
-import { StatusDot } from "@/components/StatusDot";
+import { SmartStatusDot, StatusDot } from "@/components/StatusDot";
 import { UserSettingsModal } from "@/components/UserSettingsModal";
 import { GuidedTour } from "@/components/GuidedTour";
 import { useAuth } from "@/hooks/useAuth";
@@ -84,8 +84,10 @@ export function DirectSidebar({ activeUserId }: { activeUserId?: string | null }
                 >
                   <span className="relative shrink-0">
                     <UserAvatar username={p.username} avatarUrl={p.avatar_url} />
-                    <StatusDot
+                    <SmartStatusDot
                       status={p.status}
+                      isOnline={p.is_online}
+                      lastActiveAt={p.last_active_at}
                       ring="border-servers"
                       className="size-2.5"
                     />

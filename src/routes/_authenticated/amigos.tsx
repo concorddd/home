@@ -9,7 +9,7 @@ import { DirectSidebar } from "@/components/DirectSidebar";
 import { SideDrawer, MenuButton, MobileTabBar } from "@/components/MobileShell";
 import { UserSettingsModal } from "@/components/UserSettingsModal";
 import { UserAvatar } from "@/components/UserAvatar";
-import { StatusDot } from "@/components/StatusDot";
+import { SmartStatusDot } from "@/components/StatusDot";
 
 export const Route = createFileRoute("/_authenticated/amigos")({
   head: () => ({
@@ -286,8 +286,10 @@ function FriendsPage() {
                           avatarUrl={f.profile?.avatar_url ?? null}
                           className="size-11 text-base"
                         />
-                        <StatusDot
+                        <SmartStatusDot
                           status={f.profile?.status}
+                          isOnline={f.profile?.is_online}
+                          lastActiveAt={f.profile?.last_active_at}
                           ring="border-channels"
                         />
                       </div>

@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import type { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
+import { usePresence } from "@/hooks/usePresence";
 
 export type Profile = {
   id: string;
@@ -9,6 +10,8 @@ export type Profile = {
   avatar_url: string | null;
   banner_url?: string | null;
   status: string;
+  is_online?: boolean;
+  last_active_at?: string;
   created_at: string;
 };
 
@@ -30,25 +33,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const userId = session?.user?.id ?? null;
 
+  // Sistema de presença - detecta atividade e atualiza status
+  usePresence(userId);
+
   async function loadProfile(id: string) {
-    // Tenta buscar com banner_url; se a coluna ainda não existir no banco,
-    // faz fallback para a query sem a coluna (evita quebrar o perfil).
+    // Tenta buscar com todos os campos; se alguma coluna não existir,
+    // faz fallback para a query sem ela (evita quebrar o perfil).
     let { data } = await supabase
       .from("profiles")
-      .select("id, username, display_name, avatar_url, banner_url, status, created_at")
+      .select("id, username, display_name, avatar_url, banner_url, status, is_online, last_active_at, created_at")
       .eq("id", id)
       .maybeSingle();
 
     if (data == null) {
       const fallback = await supabase
         .from("profiles")
-        .select("id, username, display_name, avatar_url, status, created_at")
+        .select("id, username, display_name, avatar_url, banner_url, status, created_at")
         .eq("id", id)
         .maybeSingle();
-      data = fallback.data as typeof data;
+      data = fallback.data as unknown as typeof data;
     }
 
-    setProfile((data as Profile) ?? null);
+    setProfile((data as unknown as Profile) ?? null);
   }
 
   useEffect(() => {

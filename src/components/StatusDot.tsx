@@ -52,3 +52,70 @@ export function StatusDot({
     />
   );
 }
+
+/**
+ * Versão avançada que calcula o status efetivo baseado na atividade.
+ * Usa is_online e last_active_at para determinar se o usuário está realmente online.
+ */
+export function SmartStatusDot({
+  status,
+  isOnline,
+  lastActiveAt,
+  ring = "bg-background",
+  className,
+}: {
+  status?: string | null | undefined;
+  isOnline?: boolean | null | undefined;
+  lastActiveAt?: string | null | undefined;
+  ring?: string | undefined;
+  className?: string | undefined;
+}) {
+  const effectiveStatus = getEffectiveStatus(status, isOnline, lastActiveAt);
+
+  return (
+    <span
+      aria-hidden
+      className={cn(
+        "absolute -bottom-0.5 -right-0.5 size-3 rounded-full border-2",
+        ring,
+        className,
+      )}
+      style={{ backgroundColor: statusColor(effectiveStatus) }}
+    />
+  );
+}
+
+/**
+ * Calcula o status efetivo baseado na última atividade
+ */
+function getEffectiveStatus(
+  status: string | null | undefined,
+  isOnline: boolean | null | undefined,
+  lastActiveAt: string | null | undefined
+): string {
+  // Se está marcado como ocupado ou não perturbe, mantém
+  if (status === "ocupado" || status === "não perturbe" || status === "não perturbar") {
+    return "ocupado";
+  }
+
+  // Se está marcado como invisível/offline, mantém
+  if (status === "invisível" || status === "offline") {
+    return "invisível";
+  }
+
+  // Se não está online no sistema
+  if (!isOnline) {
+    return "invisível";
+  }
+
+  // Se passou mais de 1h sem atividade -> ausente
+  if (lastActiveAt) {
+    const lastActive = new Date(lastActiveAt).getTime();
+    const oneHourAgo = Date.now() - 60 * 60 * 1000;
+    if (lastActive < oneHourAgo) {
+      return "ausente";
+    }
+  }
+
+  return "online";
+}

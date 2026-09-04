@@ -16,7 +16,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { UserAvatar } from "@/components/UserAvatar";
-import { StatusDot } from "@/components/StatusDot";
+import { SmartStatusDot, StatusDot } from "@/components/StatusDot";
 import { UserSettingsModal } from "@/components/UserSettingsModal";
 import { InviteModal } from "@/components/InviteModal";
 import { ServerSettingsModal } from "@/components/ServerSettingsModal";
@@ -58,6 +58,8 @@ type Author = {
   display_name: string | null;
   avatar_url: string | null;
   status?: string | null;
+  is_online?: boolean;
+  last_active_at?: string;
 };
 type Message = {
   id: string;
@@ -163,9 +165,9 @@ function ChannelPage() {
       if (ids.length) {
         const { data: profs } = await supabase
           .from("profiles")
-          .select("id, username, display_name, avatar_url, status")
+          .select("id, username, display_name, avatar_url, status, is_online, last_active_at")
           .in("id", ids);
-        const list = (profs as Author[]) ?? [];
+        const list = (profs as unknown as Author[]) ?? [];
         writeCache(`members:${serverId}`, list);
         setMembers(list);
       } else {
@@ -579,7 +581,12 @@ function ChannelPage() {
             >
               <div className="relative">
                 <UserAvatar username={m.username} avatarUrl={m.avatar_url} />
-                <StatusDot status={m.status} ring="border-channels" />
+                <SmartStatusDot
+                  status={m.status}
+                  isOnline={m.is_online}
+                  lastActiveAt={m.last_active_at}
+                  ring="border-channels"
+                />
               </div>
               <span className="text-sm tracking-tight text-muted-foreground">
                 {m.display_name || m.username}
