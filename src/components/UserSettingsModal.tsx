@@ -21,6 +21,7 @@ export function UserSettingsModal({ onClose }: { onClose: () => void }) {
   const [activeTab, setActiveTab] = useState<SettingsTab>("account");
   const [username, setUsername] = useState("");
   const [displayName, setDisplayName] = useState("");
+  const [bio, setBio] = useState("");
   const [status, setStatus] = useState("online");
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -47,6 +48,7 @@ export function UserSettingsModal({ onClose }: { onClose: () => void }) {
     setUsername(profile?.username ?? "");
     setDisplayName(profile?.display_name ?? "");
     setStatus(profile?.status ?? "online");
+    setBio(profile?.bio ?? "");
   }, [profile]);
 
   async function handleBannerUpload(e: React.ChangeEvent<HTMLInputElement>) {

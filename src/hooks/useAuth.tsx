@@ -9,6 +9,7 @@ export type Profile = {
   display_name: string | null;
   avatar_url: string | null;
   banner_url?: string | null;
+  bio?: string | null;
   status: string;
   is_online?: boolean;
   last_active_at?: string;
@@ -41,14 +42,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // faz fallback para a query sem ela (evita quebrar o perfil).
     let { data } = await supabase
       .from("profiles")
-      .select("id, username, display_name, avatar_url, banner_url, status, is_online, last_active_at, created_at")
+      .select("id, username, display_name, avatar_url, banner_url, bio, status, is_online, last_active_at, created_at")
       .eq("id", id)
       .maybeSingle();
 
     if (data == null) {
       const fallback = await supabase
         .from("profiles")
-        .select("id, username, display_name, avatar_url, banner_url, status, created_at")
+        .select("id, username, display_name, avatar_url, banner_url, bio, status, created_at")
         .eq("id", id)
         .maybeSingle();
       data = fallback.data as unknown as typeof data;

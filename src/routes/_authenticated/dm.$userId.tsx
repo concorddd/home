@@ -1,6 +1,6 @@
 import { createFileRoute, useParams } from "@tanstack/react-router";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { AtSign, Loader2, Phone, Video as VideoIcon } from "lucide-react";
+import { AtSign, Loader2, Phone, Video as VideoIcon, Users } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useCalls } from "@/hooks/useCalls";
@@ -13,6 +13,7 @@ import { UserAvatar } from "@/components/UserAvatar";
 import { ChatInput } from "@/components/ChatInput";
 import { MessageAttachment } from "@/components/MessageAttachment";
 import { SideDrawer, MenuButton } from "@/components/MobileShell";
+import { ProfilePanel } from "@/components/ProfilePanel";
 import { ArrowLeft } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 
@@ -41,6 +42,11 @@ type Peer = {
   username: string;
   display_name: string | null;
   avatar_url: string | null;
+  bio?: string | null;
+  status: string;
+  is_online?: boolean;
+  last_active_at?: string;
+  created_at: string;
 };
 
 type Dm = {
@@ -65,16 +71,17 @@ function DirectMessagePage() {
   const [loading, setLoading] = useState(!hadMessages);
   const { startCall } = useCalls();
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [profilePanelOpen, setProfilePanelOpen] = useState(true);
   const endRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     void (async () => {
       const { data } = await supabase
         .from("profiles")
-        .select("id, username, display_name, avatar_url")
+        .select("id, username, display_name, avatar_url, bio, status, is_online, last_active_at, created_at")
         .eq("id", userId)
         .maybeSingle();
-      setPeer((data as Peer) ?? null);
+      setPeer((data as unknown as Peer) ?? null);
     })();
   }, [userId, sync, setPeer]);
 
@@ -212,6 +219,19 @@ function DirectMessagePage() {
               avatarUrl={peer?.avatar_url ?? null}
               className="ml-1 hidden size-8 md:flex"
             />
+            <button
+              type="button"
+              title="Perfil"
+              aria-label="Perfil"
+              onClick={() => setProfilePanelOpen(!profilePanelOpen)}
+              className={`flex size-9 items-center justify-center rounded-lg transition-colors ${
+                profilePanelOpen
+                  ? "bg-accent/40 text-foreground"
+                  : "text-muted-foreground hover:bg-accent/40 hover:text-foreground"
+              }`}
+            >
+              <Users className="size-5" />
+            </button>
           </div>
         </header>
 
@@ -277,6 +297,14 @@ function DirectMessagePage() {
           <ChatInput placeholder={`Conversar com ${peerName}`} onSend={handleSend} />
         )}
       </main>
+
+      {/* Painel de perfil */}
+      {profilePanelOpen && peer && (
+        <ProfilePanel
+          profile={peer}
+          onClose={() => setProfilePanelOpen(false)}
+        />
+      )}
     </div>
   );
 }
