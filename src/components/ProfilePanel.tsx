@@ -1,10 +1,21 @@
 import { UserAvatar } from "./UserAvatar";
 import { SmartStatusDot } from "./StatusDot";
 import { UserCheck, MoreHorizontal } from "lucide-react";
-import type { Profile } from "@/hooks/useAuth";
+
+type ProfileLike = {
+  id: string;
+  username: string;
+  display_name: string | null;
+  avatar_url: string | null;
+  bio?: string | null;
+  status?: string;
+  is_online?: boolean;
+  last_active_at?: string;
+  created_at?: string;
+};
 
 type Props = {
-  profile: Profile | null;
+  profile: ProfileLike | null;
   onClose: () => void;
 };
 
