@@ -3,6 +3,8 @@ import { Loader2, Plus, Send, Smile, X } from "lucide-react";
 import { EmojiPicker } from "@/components/EmojiPicker";
 import { formatBytes, uploadAttachment, type UploadedAttachment } from "@/lib/attachments";
 import { useAuth } from "@/hooks/useAuth";
+import { AudioRecorder } from "@/components/AudioRecorder";
+import { supabase } from "@/integrations/supabase/client";
 
 export function ChatInput({
   placeholder,
@@ -17,6 +19,7 @@ export function ChatInput({
   const [progress, setProgress] = useState<number | null>(null);
   const [sending, setSending] = useState(false);
   const [emojiOpen, setEmojiOpen] = useState(false);
+  const [showAudioRecorder, setShowAudioRecorder] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -44,6 +47,32 @@ export function ChatInput({
     }
   }
 
+  async function handleAudioSend(blob: Blob, duration: number) {
+    if (!user) return;
+    setSending(true);
+    try {
+      const path = `audio/${user.id}/${Date.now()}.webm`;
+      const { error: uploadError } = await supabase.storage.from("audio").upload(path, blob);
+      if (uploadError) throw uploadError;
+      const { data: urlData } = supabase.storage.from("audio").getPublicUrl(path);
+      await onSend({
+        content: "",
+        attachment: {
+          url: urlData.publicUrl,
+          name: `audio-${duration}s.webm`,
+          type: "audio/webm",
+          size: blob.size,
+          duration,
+        },
+      });
+      setShowAudioRecorder(false);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Erro ao enviar áudio.");
+    } finally {
+      setSending(false);
+    }
+  }
+
   return (
     <form onSubmit={submit} className="relative shrink-0 px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] md:px-6 md:pb-8">
       {error && <p className="mb-2 text-sm text-destructive">{error}</p>}
@@ -56,88 +85,46 @@ export function ChatInput({
           </span>
           {progress !== null ? (
             <div className="h-1.5 w-32 overflow-hidden rounded-full bg-accent">
-              <div
-                className="h-full rounded-full bg-primary transition-all duration-200"
-                style={{ width: `${progress}%` }}
-              />
+              <div className="h-full rounded-full bg-primary transition-all duration-200" style={{ width: `${progress}%` }} />
             </div>
           ) : (
-            <button
-              type="button"
-              aria-label="Remover anexo"
-              onClick={() => {
-                setFile(null);
-                if (fileRef.current) fileRef.current.value = "";
-              }}
-              className="text-muted-foreground hover:text-destructive"
-            >
+            <button type="button" aria-label="Remover anexo" onClick={() => { setFile(null); if (fileRef.current) fileRef.current.value = ""; }} className="text-muted-foreground hover:text-destructive">
               <X className="size-4" />
             </button>
           )}
-          {progress !== null && (
-            <span className="w-10 text-right text-xs tabular-nums text-muted-foreground">
-              {progress}%
-            </span>
-          )}
+          {progress !== null && <span className="w-10 text-right text-xs tabular-nums text-muted-foreground">{progress}%</span>}
         </div>
       )}
 
-      <div className="relative flex items-center gap-3 rounded-2xl bg-message-input px-4 py-3 shadow-[0_8px_32px_-12px_rgba(0,0,0,0.6)] ring-1 ring-white/[0.04] transition-all duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] focus-within:ring-primary/50">
-        <input
-          ref={fileRef}
-          type="file"
-          className="hidden"
-          onChange={(e) => {
-            const f = e.target.files?.[0] ?? null;
-            setError(null);
-            setFile(f);
-          }}
-        />
-        <button
-          type="button"
-          onClick={() => fileRef.current?.click()}
-          aria-label="Anexar arquivo"
-          title="Anexar arquivo (até 1GB)"
-          className="shrink-0 rounded-full bg-accent/70 p-1 text-muted-foreground transition-all hover:scale-110 hover:text-foreground"
-        >
-          <Plus className="size-4" />
-        </button>
-
-        <input
-          value={draft}
-          onChange={(e) => setDraft(e.target.value)}
-          placeholder={placeholder}
-          aria-label="Mensagem"
-          maxLength={2000}
-          className="min-w-0 flex-1 bg-transparent text-[15px] leading-6 outline-none placeholder:text-muted-foreground"
-        />
-
-        <div className="relative shrink-0">
-          <button
-            type="button"
-            onClick={() => setEmojiOpen((v) => !v)}
-            aria-label="Emojis"
-            className="text-muted-foreground transition-all hover:scale-110 hover:text-primary"
-          >
-            <Smile className="size-5" />
-          </button>
-          {emojiOpen && (
-            <EmojiPicker
-              onSelect={(emoji) => setDraft((d) => d + emoji)}
-              onClose={() => setEmojiOpen(false)}
-            />
-          )}
+      {showAudioRecorder ? (
+        <div className="mb-2">
+          <AudioRecorder onSend={handleAudioSend} onCancel={() => setShowAudioRecorder(false)} />
         </div>
+      ) : (
+        <div className="relative flex items-center gap-3 rounded-2xl bg-message-input px-4 py-3 shadow-[0_8px_32px_-12px_rgba(0,0,0,0.6)] ring-1 ring-white/[0.04] transition-all duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] focus-within:ring-primary/50">
+          <input ref={fileRef} type="file" className="hidden" onChange={(e) => { const f = e.target.files?.[0] ?? null; setError(null); setFile(f); }} />
+          <button type="button" onClick={() => fileRef.current?.click()} aria-label="Anexar arquivo" title="Anexar arquivo" className="shrink-0 rounded-full bg-accent/70 p-1 text-muted-foreground transition-all hover:scale-110 hover:text-foreground">
+            <Plus className="size-4" />
+          </button>
 
-        <button
-          type="submit"
-          disabled={sending}
-          aria-label="Enviar"
-          className="shrink-0 text-muted-foreground transition-all duration-200 hover:scale-110 hover:text-primary active:scale-95 disabled:opacity-50"
-        >
-          {sending ? <Loader2 className="size-5 animate-spin" /> : <Send className="size-5" />}
-        </button>
-      </div>
+          <input value={draft} onChange={(e) => setDraft(e.target.value)} placeholder={placeholder} aria-label="Mensagem" maxLength={2000} className="min-w-0 flex-1 bg-transparent text-[15px] leading-6 outline-none placeholder:text-muted-foreground" />
+
+          <button type="button" onClick={() => setShowAudioRecorder(true)} aria-label="Gravar áudio" title="Gravar áudio" className="text-muted-foreground transition-all hover:scale-110 hover:text-primary">
+            <svg className="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 10v2a7 7 0 0 1-14 0v-2M12 19v4M8 23h8" /></svg>
+          </button>
+
+          <div className="relative shrink-0">
+            <button type="button" onClick={() => setEmojiOpen((v) => !v)} aria-label="Emojis" className="text-muted-foreground transition-all hover:scale-110 hover:text-primary">
+              <Smile className="size-5" />
+            </button>
+            {emojiOpen && <EmojiPicker onSelect={(emoji) => setDraft((d) => d + emoji)} onClose={() => setEmojiOpen(false)} />}
+          </div>
+
+          <button type="submit" disabled={sending} aria-label="Enviar" className="shrink-0 text-muted-foreground transition-all duration-200 hover:scale-110 hover:text-primary active:scale-95 disabled:opacity-50">
+            {sending ? <Loader2 className="size-5 animate-spin" /> : <Send className="size-5" />}
+          </button>
+        </div>
+      )}
     </form>
   );
 }

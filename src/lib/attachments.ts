@@ -7,6 +7,7 @@ export type UploadedAttachment = {
   name: string;
   type: string;
   size: number;
+  duration?: number; // Para áudio
 };
 
 function sanitize(name: string) {
