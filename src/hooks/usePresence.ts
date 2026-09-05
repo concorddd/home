@@ -2,7 +2,7 @@ import { useEffect, useRef, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
 const HEARTBEAT_INTERVAL = 30_000; // 30 segundos
-const ACTIVITY_TIMEOUT = 5 * 60_1000; // 5 minutos sem atividade = ausente
+const ACTIVITY_TIMEOUT = 60 * 60_000; // 1 hora sem interação = ausente
 
 export function usePresence(userId: string | undefined | null) {
   const lastActivityRef = useRef<number>(Date.now());
@@ -96,9 +96,9 @@ export function usePresence(userId: string | undefined | null) {
       });
       window.removeEventListener("beforeunload", handleBeforeUnload);
       document.removeEventListener("visibilitychange", handleVisibilityChange);
-      
-      // Marca offline ao desmontar
-      void setOffline();
+      // NAO marca offline no unmount: React StrictMode desmonta/remonta em dev
+      // e a navegacao remontaria o provider marcando offline erroneamente.
+      // O offline real acontece no beforeunload (fechou a aba/janela).
     };
   }, [userId, updateActivity, setOffline]);
 

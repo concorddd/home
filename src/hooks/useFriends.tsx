@@ -35,17 +35,27 @@ export function useFriends() {
       .from("friendships")
       .select("id, status, requester_id, addressee_id")
       .order("created_at", { ascending: false });
-    const rows = data ?? [];
+    const rows = (data as Array<Omit<FriendRequest, "profile">>) ?? [];
     const otherIds = [
       ...new Set(rows.map((r) => (r.requester_id === user.id ? r.addressee_id : r.requester_id))),
     ];
     let byId = new Map<string, FriendProfile>();
     if (otherIds.length) {
-      const { data: profs } = await supabase
+      // Tenta com colunas de presença; se não existirem (migration pendente),
+      // refaz sem elas para não quebrar a lista de amigos.
+      const primary = await supabase
         .from("profiles")
         .select("id, username, display_name, avatar_url, status, is_online, last_active_at")
         .in("id", otherIds);
-      byId = new Map(((profs as unknown as FriendProfile[]) ?? []).map((p) => [p.id, p]));
+      let profs = (primary.data as unknown as FriendProfile[]) ?? null;
+      if (primary.error || profs === null) {
+        const fallback = await supabase
+          .from("profiles")
+          .select("id, username, display_name, avatar_url, status")
+          .in("id", otherIds);
+        profs = (fallback.data as unknown as FriendProfile[]) ?? [];
+      }
+      byId = new Map((profs ?? []).map((p) => [p.id, p]));
     }
     const mapped: FriendRequest[] = rows.map((r) => ({
       ...r,

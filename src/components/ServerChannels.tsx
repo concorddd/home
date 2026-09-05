@@ -38,6 +38,7 @@ import {
   CreateChannelModal,
   type CreatedChannel,
 } from "@/components/CreateChannelModal";
+import { VoiceChannelPresence } from "@/hooks/useVoicePresence";
 
 export type Channel = {
   id: string;
@@ -406,19 +407,28 @@ export function ServerChannels({
                 strategy={verticalListSortingStrategy}
               >
                 {group.channels.map((ch) => (
-                  <SortableChannelItem
-                    key={ch.id}
-                    channel={ch}
-                    active={ch.id === currentChannelId}
-                    muted={muted.includes(ch.id)}
-                    isOwner={isOwner}
-                    dragging={activeId === ch.id}
-                    onOpen={() => onNavigate(ch.id)}
-                    onRename={() => onRenameChannel(ch)}
-                    onDelete={() => onDeleteChannel(ch)}
-                    onToggleMute={() => toggleMute(ch.id)}
-                    onContextMenu={(x, y) => setChannelMenu({ x, y, channelId: ch.id })}
-                  />
+                  <>
+                    <SortableChannelItem
+                      key={ch.id}
+                      channel={ch}
+                      active={ch.id === currentChannelId}
+                      muted={muted.includes(ch.id)}
+                      isOwner={isOwner}
+                      dragging={activeId === ch.id}
+                      onOpen={() => onNavigate(ch.id)}
+                      onRename={() => onRenameChannel(ch)}
+                      onDelete={() => onDeleteChannel(ch)}
+                      onToggleMute={() => toggleMute(ch.id)}
+                      onContextMenu={(x, y) => setChannelMenu({ x, y, channelId: ch.id })}
+                    />
+                    {ch.kind === "voice" && (
+                      <VoiceChannelPresence
+                        channelId={ch.id}
+                        channelName={ch.name}
+                        compact
+                      />
+                    )}
+                  </>
                 ))}
               </SortableContext>
             </CategorySection>

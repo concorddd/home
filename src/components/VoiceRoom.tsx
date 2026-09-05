@@ -12,6 +12,7 @@ import {
   Volume2,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { useVoicePresence } from "@/hooks/useVoicePresence";
 import { useAuth } from "@/hooks/useAuth";
 import { UserAvatar } from "@/components/UserAvatar";
 
@@ -123,6 +124,9 @@ export function VoiceRoom({
 }: Props) {
   const { user } = useAuth();
   const selfId = user?.id ?? "";
+
+  // Registra presença no canal de voz
+  useVoicePresence(channelId, selfId);
 
   const [connecting, setConnecting] = useState(true);
   const [error, setError] = useState<string | null>(null);

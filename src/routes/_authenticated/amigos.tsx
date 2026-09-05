@@ -12,7 +12,7 @@ import { UserAvatar } from "@/components/UserAvatar";
 import { SmartStatusDot } from "@/components/StatusDot";
 
 export const Route = createFileRoute("/_authenticated/amigos")({
-  head: () => ({ meta: [{ title: "Amigos � Concord" }] }),
+  head: () => ({ meta: [{ title: "Amigos — Concord" }] }),
   component: FriendsPage,
 });
 
@@ -37,11 +37,21 @@ function FriendsPage() {
     setBusy(true);
     setFeedback(null);
     try {
-      const { data: target } = await supabase.from("profiles").select("id, username").ilike("username", username).maybeSingle();
-      if (!target) throw new Error("Usu�rio n�o encontrado.");
-      if (target.id === user.id) throw new Error("Voc� n�o pode adicionar a si mesmo.");
+      // Busca exata primeiro (ilike com _ quebra usernames); fallback parcial.
+      let target: { id: string; username: string } | null = null;
+      const exact = await supabase.from("profiles").select("id, username").eq("username", username).maybeSingle();
+      if (exact.data) {
+        target = exact.data as unknown as { id: string; username: string };
+      } else {
+        const partial = await supabase.from("profiles").select("id, username").ilike("username", username).limit(2);
+                const rows = (partial.data as unknown as Array<{ id: string; username: string }>) ?? [];
+        const first = rows.length === 1 ? (rows[0] ?? null) : null;
+        target = first;
+      }
+      if (!target) throw new Error("Usuário não encontrado.");
+      if (target.id === user.id) throw new Error("Você não pode adicionar a si mesmo.");
       const existing = [...friends, ...incoming, ...outgoing].find((f) => f.profile?.id === target.id);
-      if (existing) throw new Error("J� existe um pedido ou amizade.");
+      if (existing) throw new Error("Já existe um pedido ou amizade.");
       const { error } = await supabase.from("friendships").insert({ requester_id: user.id, addressee_id: target.id, status: "pending" });
       if (error) throw error;
       setFeedback({ kind: "ok", text: `Pedido enviado para @${target.username}.` });
@@ -98,7 +108,7 @@ function FriendsPage() {
             {tab === "adicionar" ? (
               <div className="max-w-2xl">
                 <h2 className="mb-2 text-xs font-semibold uppercase text-gray-400">Adicionar amigo</h2>
-                <p className="mb-4 text-sm text-gray-400">Voc� pode adicionar amigos pelo nome de usu�rio deles.</p>
+                <p className="mb-4 text-sm text-gray-400">Você pode adicionar amigos pelo nome de usuário deles.</p>
                 <form onSubmit={sendRequest} className="relative">
                   <input type="text" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Digite o @username" className="w-full rounded-lg bg-[#1e1f22] px-4 py-3 pr-32 text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#5865F2]" />
                   <button type="submit" disabled={busy || !query.trim()} className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md bg-[#5865F2] px-4 py-1.5 text-sm font-medium text-white hover:bg-[#4752C4] disabled:opacity-50 transition-colors">
@@ -140,11 +150,11 @@ function PendentesTab({ incoming, outgoing, onRespond, onRemove }: {
   return (
     <div>
       <h2 className="mb-4 text-xs font-semibold uppercase text-gray-400">
-        Pendentes � {incoming.length + outgoing.length}
+        Pendentes — {incoming.length + outgoing.length}
       </h2>
       <ul className="space-y-0.5">
         {incoming.length === 0 && outgoing.length === 0 && (
-          <li className="py-8 text-center text-sm text-gray-500">N�o h� pedidos pendentes.</li>
+          <li className="py-8 text-center text-sm text-gray-500">Não há pedidos pendentes.</li>
         )}
         {incoming.map((f) => (
           <li key={f.id} className="group flex items-center gap-3 rounded-lg px-3 py-2.5 transition-colors hover:bg-[#3f4147]">
@@ -201,10 +211,10 @@ function TodosTab({ friends, navigate, onRemove }: {
 }) {
   return (
     <div>
-      <h2 className="mb-4 text-xs font-semibold uppercase text-gray-400">Todos os amigos � {friends.length}</h2>
+      <h2 className="mb-4 text-xs font-semibold uppercase text-gray-400">Todos os amigos — {friends.length}</h2>
       {friends.length === 0 ? (
         <div className="py-16 text-center">
-          <p className="text-sm text-gray-500">Nenhum amigo ainda. Adicione algu�m para come�ar!</p>
+          <p className="text-sm text-gray-500">Nenhum amigo ainda. Adicione alguém para começar!</p>
         </div>
       ) : (
         <ul className="space-y-0.5">
@@ -223,7 +233,7 @@ function TodosTab({ friends, navigate, onRemove }: {
                   {f.profile?.status === "online" && "Online"}
                   {f.profile?.status === "ausente" && "Ausente"}
                   {f.profile?.status === "ocupado" && "Ocupado"}
-                  {f.profile?.status === "invis�vel" && "Invis�vel"}
+                  {f.profile?.status === "invisível" && "Invisível"}
                   {!f.profile?.status && "Offline"}
                 </p>
               </div>

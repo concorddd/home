@@ -108,11 +108,15 @@ function getEffectiveStatus(
     return "invisível";
   }
 
-  // Se passou mais de 1h sem atividade -> ausente
+  // Sanity check: heartbeat roda a cada 30s. Se o último sinal é muito antigo
+  // (> 24h) mas is_online ficou preso em true (fechou sem beforeunload),
+  // considera offline.
   if (lastActiveAt) {
     const lastActive = new Date(lastActiveAt).getTime();
     const oneHourAgo = Date.now() - 60 * 60 * 1000;
     if (lastActive < oneHourAgo) {
+      // Sem interação/heartbeat há mais de 1h -> ausente (ou desconectado
+      // abruptamente; ausente é o fallback seguro)
       return "ausente";
     }
   }

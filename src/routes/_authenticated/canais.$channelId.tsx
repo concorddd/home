@@ -25,6 +25,7 @@ import { ServerRail } from "@/components/ServerRail";
 import { SideDrawer, MenuButton } from "@/components/MobileShell";
 import { ChatInput } from "@/components/ChatInput";
 import { MessageAttachment } from "@/components/MessageAttachment";
+import { parseMarkdown } from "@/lib/markdown";
 import { useRealtimeSync } from "@/hooks/useRealtimeSync";
 import { useCached, readCache, writeCache } from "@/lib/cache";
 import { markServerSeen } from "@/hooks/useInbox";
@@ -539,9 +540,9 @@ function ChannelPage() {
                     </span>
                   </p>
                   {m.content && (
-                    <p className="break-words text-[15px] leading-[1.6] text-foreground/90">
-                      {m.content}
-                    </p>
+                    <div className="break-words text-[15px] leading-[1.6] text-foreground/90">
+                      {parseMarkdown(m.content)}
+                    </div>
                   )}
                   {m.attachment_url && (
                     <MessageAttachment
