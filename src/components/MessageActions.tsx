@@ -1,143 +1,127 @@
-import { Pin, Trash2, MoreHorizontal, Copy } from "lucide-react";
-import { useState, useRef, useEffect } from "react";
+import { Link, Mail, Pin, SmilePlus, Reply, Forward, MoreHorizontal, Trash2 } from "lucide-react";
 
 type Props = {
-  messageId: string;
   isOwn: boolean;
   isPinned: boolean;
   onPin: () => void;
   onDelete: () => void;
-  onMore?: () => void;
-  children: React.ReactNode;
+  onReply?: () => void;
+  onReact?: () => void;
+  onCopyLink?: () => void;
+  onMarkUnread?: () => void;
+  onForward?: () => void;
+  onMore?: (e: React.MouseEvent) => void;
 };
 
-export function MessageActions({
-  messageId,
+export function MessageHoverMenu({
   isOwn,
   isPinned,
   onPin,
   onDelete,
+  onReply,
+  onReact,
+  onCopyLink,
+  onMarkUnread,
+  onForward,
   onMore,
-  children,
 }: Props) {
-  const [showMenu, setShowMenu] = useState(false);
-  const menuRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
-        setShowMenu(false);
-      }
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
-
+  const btn =
+    "p-1.5 rounded text-[#b5bac1] hover:text-[#dbdee1] hover:bg-[#404249] transition-colors";
   return (
-    <div className="relative group" ref={menuRef}>
-      <div className="flex items-start gap-2">
-        <div className="flex-1">{children}</div>
-
-        <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-0.5 -mt-3 shrink-0">
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              setShowMenu(!showMenu);
-            }}
-            className="rounded p-1.5 text-[#949ba4] hover:bg-[#2b2d31] hover:text-[#dbdee1] transition-colors"
-            title="Mais ações"
-          >
-            <MoreHorizontal className="size-4" />
-          </button>
-
-          {isOwn && (
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onDelete();
-              }}
-              className="rounded p-1.5 text-[#949ba4] hover:bg-[#2b2d31] hover:text-red-400 transition-colors"
-              title="Apagar mensagem"
-            >
-              <Trash2 className="size-4" />
-            </button>
-          )}
-
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onPin();
-            }}
-            className={`rounded p-1.5 transition-colors ${
-              isPinned
-                ? "text-[#949ba4] bg-[#5865F2]/10"
-                : "text-[#949ba4] hover:bg-[#2b2d31] hover:text-[#dbdee1]"
-            }`}
-            title={isPinned ? "Desfixar mensagem" : "Fixar mensagem"}
-          >
-            <Pin className="size-4" />
-          </button>
-        </div>
-      </div>
-
-      {showMenu && (
-        <div
-          className={`absolute top-6 z-50 w-48 rounded-md bg-[#111214] py-1 shadow-xl border border-[#1e1f22] ${
-            isOwn ? "right-0" : "left-0"
-          }`}
+    <div className="absolute -top-3 -right-1 z-20 flex items-center gap-0.5 rounded-lg border border-[#1e1f22] bg-[#2b2d31] px-1 py-0.5 shadow-lg">
+      {onCopyLink && (
+        <button
+          className={btn}
+          title="Copiar link da mensagem"
+          onClick={(e) => {
+            e.stopPropagation();
+            onCopyLink();
+          }}
         >
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onPin();
-              setShowMenu(false);
-            }}
-            className="flex w-full items-center gap-2 px-3 py-2 text-sm text-[#dbdee1] hover:bg-[#5865F2] hover:text-white transition-colors"
-          >
-            <Pin className="size-4" />
-            {isPinned ? "Desfixar" : "Fixar mensagem"}
-          </button>
-
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              navigator.clipboard.writeText(messageId);
-              setShowMenu(false);
-            }}
-            className="flex w-full items-center gap-2 px-3 py-2 text-sm text-[#dbdee1] hover:bg-[#5865F2] hover:text-white transition-colors"
-          >
-            <Copy className="size-4" />
-            Copiar ID
-          </button>
-
-          {isOwn && (
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onDelete();
-                setShowMenu(false);
-              }}
-              className="flex w-full items-center gap-2 px-3 py-2 text-sm text-red-400 hover:bg-red-500 hover:text-white transition-colors"
-            >
-              <Trash2 className="size-4" />
-              Apagar mensagem
-            </button>
-          )}
-
-          {onMore && (
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onMore();
-                setShowMenu(false);
-              }}
-              className="flex w-full items-center gap-2 px-3 py-2 text-sm text-[#dbdee1] hover:bg-[#5865F2] hover:text-white transition-colors"
-            >
-              <MoreHorizontal className="size-4" />
-              Mais opções
-            </button>
-          )}
-        </div>
+          <Link className="size-3.5" />
+        </button>
+      )}
+      {onMarkUnread && (
+        <button
+          className={btn}
+          title="Marcar como não lido"
+          onClick={(e) => {
+            e.stopPropagation();
+            onMarkUnread();
+          }}
+        >
+          <Mail className="size-3.5" />
+        </button>
+      )}
+      <button
+        className={`${btn} ${isPinned ? "text-[#5865F2]" : ""}`}
+        title={isPinned ? "Desafixar mensagem" : "Fixar mensagem"}
+        onClick={(e) => {
+          e.stopPropagation();
+          onPin();
+        }}
+      >
+        <Pin className="size-3.5" />
+      </button>
+      {onReact && (
+        <button
+          className={btn}
+          title="Reagir"
+          onClick={(e) => {
+            e.stopPropagation();
+            onReact();
+          }}
+        >
+          <SmilePlus className="size-3.5" />
+        </button>
+      )}
+      {onReply && (
+        <button
+          className={btn}
+          title="Responder"
+          onClick={(e) => {
+            e.stopPropagation();
+            onReply();
+          }}
+        >
+          <Reply className="size-3.5" />
+        </button>
+      )}
+      {onForward && (
+        <button
+          className={btn}
+          title="Encaminhar"
+          onClick={(e) => {
+            e.stopPropagation();
+            onForward();
+          }}
+        >
+          <Forward className="size-3.5" />
+        </button>
+      )}
+      {isOwn && (
+        <button
+          className={`${btn} hover:text-red-400`}
+          title="Apagar mensagem"
+          onClick={(e) => {
+            e.stopPropagation();
+            onDelete();
+          }}
+        >
+          <Trash2 className="size-3.5" />
+        </button>
+      )}
+      {onMore && (
+        <button
+          className={btn}
+          title="Mais opções"
+          onClick={(e) => {
+            e.stopPropagation();
+            onMore(e);
+          }}
+        >
+          <MoreHorizontal className="size-3.5" />
+        </button>
       )}
     </div>
   );

@@ -12,6 +12,8 @@ import { DirectSidebar } from "@/components/DirectSidebar";
 import { UserAvatar } from "@/components/UserAvatar";
 import { ChatInput } from "@/components/ChatInput";
 import { MessageAttachment } from "@/components/MessageAttachment";
+import { MessageHoverMenu } from "@/components/MessageActions";
+import { MessageContextMenu } from "@/components/MessageContextMenu";
 import { SideDrawer, MenuButton } from "@/components/MobileShell";
 import { ProfilePanel, type Peer } from "@/components/ProfilePanel";
 import { AudioPlayer } from "@/components/AudioPlayer";
@@ -50,6 +52,16 @@ function DirectMessagePage() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [profilePanelOpen, setProfilePanelOpen] = useState(true);
   const endRef = useRef<HTMLDivElement>(null);
+  const [contextMenu, setContextMenu] = useState<{
+    x: number;
+    y: number;
+    messageId: string;
+  } | null>(null);
+
+  function handleMessageContextMenu(e: React.MouseEvent, messageId: string) {
+    e.preventDefault();
+    setContextMenu({ x: e.clientX, y: e.clientY, messageId });
+  }
 
   useEffect(() => {
     void (async () => {
@@ -270,14 +282,18 @@ return (
             messages.map((m) => {
               const mine = m.sender_id === user?.id;
               return (
-                <article key={m.id} className="animate-fade-up group -mx-2 flex gap-3 rounded-xl px-2 py-1 transition-colors hover:bg-accent/25 relative">
+                <article
+                  key={m.id}
+                  onContextMenu={(e) => handleMessageContextMenu(e, m.id)}
+                  className="animate-fade-up group -mx-2 flex gap-3 rounded-xl px-2 py-1 transition-colors hover:bg-accent/25"
+                >
                   <UserAvatar
                     username={mine ? (profile?.username ?? "?") : (peer?.username ?? "?")}
                     avatarUrl={mine ? (profile?.avatar_url ?? null) : (peer?.avatar_url ?? null)}
-                    className="size-10 shrink-0"
+                    className="size-10 shrink-0 user-select-none"
                   />
                   <div className="min-w-0 flex-1">
-                    <p className="flex items-baseline gap-2">
+                    <p className="flex items-baseline gap-2 user-select-none">
                       <span className="text-sm font-semibold tracking-tight text-[#dbdee1]">
                         {mine ? profile?.display_name || profile?.username || "Voce" : peerName}
                       </span>
@@ -286,7 +302,7 @@ return (
                       </span>
                     </p>
                     {m.content && (
-                      <div className="break-words text-[15px] leading-[1.6] text-[#dbdee1]">
+                      <div className="break-words text-[15px] leading-[1.6] text-[#dbdee1] user-select-text">
                         {parseMarkdown(m.content)}
                       </div>
                     )}
@@ -302,24 +318,30 @@ return (
                       />
                     )}
                   </div>
-                  <div className="absolute -top-2 -right-2 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-0.5 bg-[#2b2d31] rounded-lg shadow-lg border border-[#1e1f22] p-0.5">
-                    {mine && (
-                      <button onClick={() => handleDeleteMessage(m.id)} className="p-1.5 rounded text-[#949ba4] hover:text-red-400 hover:bg-[#404249] transition-colors" title="Apagar">
-                        <Trash2 className="size-3.5" />
-                      </button>
-                    )}
-                    <button
-                      onClick={() => handleTogglePin(m.id, Boolean(m.is_pinned))}
-                      className={`p-1.5 rounded transition-colors ${
-                        m.is_pinned
-                          ? "text-[#5865F2] bg-[#404249]"
-                          : "text-[#949ba4] hover:text-[#5865F2] hover:bg-[#404249]"
-                      }`}
-                      title={m.is_pinned ? "Desafixar" : "Fixar"}
-                    >
-                      <Pin className="size-3.5" />
-                    </button>
-                  </div>
+                  <MessageHoverMenu
+                    isOwn={mine}
+                    isPinned={Boolean(m.is_pinned)}
+                    onPin={() => handleTogglePin(m.id, Boolean(m.is_pinned))}
+                    onDelete={() => handleDeleteMessage(m.id)}
+                    onReply={() => {}}
+                    onReact={() => {}}
+                    onCopyLink={() => {
+                      const link = `${window.location.origin}/dm/${userId}?msg=${m.id}`;
+                      void navigator.clipboard.writeText(link);
+                    }}
+                    onMarkUnread={() => {}}
+                    onForward={() => {}}
+                    onMore={(e) => {
+                      const rect = (e.currentTarget as HTMLElement)
+                        .closest("article")
+                        ?.getBoundingClientRect();
+                      setContextMenu({
+                        x: rect?.right ?? e.clientX,
+                        y: rect?.top ?? e.clientY,
+                        messageId: m.id,
+                      });
+                    }}
+                  />
                 </article>
               );
             })
@@ -335,6 +357,49 @@ return (
       </main>
 
       {profilePanelOpen && peer && <ProfilePanel profile={peer} onClose={() => setProfilePanelOpen(false)} />}
+
+      {contextMenu && (
+        <MessageContextMenu
+          x={contextMenu.x}
+          y={contextMenu.y}
+          isOwn={messages.find((m) => m.id === contextMenu.messageId)?.sender_id === user?.id}
+          onClose={() => setContextMenu(null)}
+          onReact={() => {}}
+          onReply={() => {}}
+          onForward={() => {}}
+          onCopyText={() => {
+            const msg = messages.find((m) => m.id === contextMenu.messageId);
+            if (msg?.content) void navigator.clipboard.writeText(msg.content);
+          }}
+          onPin={() => {
+            const msg = messages.find((m) => m.id === contextMenu.messageId);
+            if (msg) void handleTogglePin(msg.id, Boolean(msg.is_pinned));
+          }}
+          onMarkUnread={() => {}}
+          onCopyLink={() => {
+            const link = `${window.location.origin}/dm/${userId}?msg=${contextMenu.messageId}`;
+            void navigator.clipboard.writeText(link);
+          }}
+          onSpeak={() => {
+            const msg = messages.find((m) => m.id === contextMenu.messageId);
+            if (msg?.content && "speechSynthesis" in window) {
+              const u = new SpeechSynthesisUtterance(msg.content);
+              u.lang = "pt-BR";
+              speechSynthesis.cancel();
+              speechSynthesis.speak(u);
+            }
+          }}
+          onReport={() => {}}
+          onDelete={
+            messages.find((m) => m.id === contextMenu.messageId)?.sender_id === user?.id
+              ? () => {
+                  const msg = messages.find((m) => m.id === contextMenu.messageId);
+                  if (msg) void handleDeleteMessage(msg.id);
+                }
+              : undefined
+          }
+        />
+      )}
     </div>
   );
 }

@@ -25,6 +25,8 @@ import { ServerRail } from "@/components/ServerRail";
 import { SideDrawer, MenuButton } from "@/components/MobileShell";
 import { ChatInput } from "@/components/ChatInput";
 import { MessageAttachment } from "@/components/MessageAttachment";
+import { MessageHoverMenu } from "@/components/MessageActions";
+import { MessageContextMenu } from "@/components/MessageContextMenu";
 import { parseMarkdown } from "@/lib/markdown";
 import { useRealtimeSync } from "@/hooks/useRealtimeSync";
 import { useCached, readCache, writeCache } from "@/lib/cache";
@@ -67,6 +69,7 @@ type Message = {
   content: string;
   created_at: string;
   user_id: string;
+  is_pinned?: boolean;
   attachment_url: string | null;
   attachment_name: string | null;
   attachment_type: string | null;
@@ -99,6 +102,16 @@ function ChannelPage() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [inviteOpen, setInviteOpen] = useState(false);
   const [serverSettingsOpen, setServerSettingsOpen] = useState(false);
+  const [contextMenu, setContextMenu] = useState<{
+    x: number;
+    y: number;
+    messageId: string;
+  } | null>(null);
+
+  function handleMessageContextMenu(e: React.MouseEvent, messageId: string) {
+    e.preventDefault();
+    setContextMenu({ x: e.clientX, y: e.clientY, messageId });
+  }
   const [serverId, setServerId] = useState<string | null>(
     () => readCache<string>(`chan-server:${channelId}`) ?? null,
   );
@@ -353,6 +366,31 @@ function ChannelPage() {
     void fetchMessages();
   }
 
+  async function handleTogglePin(messageId: string, isPinned: boolean) {
+    // Cast necessário: coluna is_pinned ainda pode não estar nos types gerados.
+    const { error } = await (
+      supabase.from("messages") as unknown as {
+        update: (o: Record<string, unknown>) => {
+          eq: (k: string, v: string) => Promise<{ error: { message: string } | null }>;
+        };
+      }
+    )
+      .update({ is_pinned: !isPinned })
+      .eq("id", messageId);
+    if (!error) {
+      setMessages((prev) =>
+        prev.map((msg) => (msg.id === messageId ? { ...msg, is_pinned: !isPinned } : msg)),
+      );
+    }
+  }
+
+  async function handleDeleteMessage(messageId: string) {
+    const { error } = await supabase.from("messages").delete().eq("id", messageId);
+    if (!error) {
+      setMessages((prev) => prev.filter((msg) => msg.id !== messageId));
+    }
+  }
+
   return (
     <div className="flex h-[100dvh] w-full overflow-hidden bg-background text-foreground">
       <SideDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)}>
@@ -541,15 +579,16 @@ function ChannelPage() {
               <article
                 key={m.id}
                 style={{ animationDelay: `${Math.min(i, 8) * 40}ms` }}
+                onContextMenu={(e) => handleMessageContextMenu(e, m.id)}
                 className="animate-fade-up group -mx-2 flex gap-3 rounded-xl px-2 py-1 transition-colors duration-200 hover:bg-accent/25"
               >
                 <UserAvatar
                   username={m.author?.username ?? "?"}
                   avatarUrl={m.author?.avatar_url ?? null}
-                  className="size-10 shrink-0 shadow-[0_4px_12px_-6px_rgba(0,0,0,0.8)]"
+                  className="size-10 shrink-0 shadow-[0_4px_12px_-6px_rgba(0,0,0,0.8)] user-select-none"
                 />
-                <div className="min-w-0">
-                  <p className="flex items-baseline gap-2">
+                <div className="min-w-0 flex-1">
+                  <p className="flex items-baseline gap-2 user-select-none">
                     <span className="text-sm font-semibold tracking-tight text-[#dbdee1]">
                       {m.author?.display_name || m.author?.username || "Usuário"}
                     </span>
@@ -561,7 +600,7 @@ function ChannelPage() {
                     </span>
                   </p>
                   {m.content && (
-                    <div className="break-words text-[15px] leading-[1.6] text-[#dbdee1]">
+                    <div className="break-words text-[15px] leading-[1.6] text-[#dbdee1] user-select-text">
                       {parseMarkdown(m.content)}
                     </div>
                   )}
@@ -574,6 +613,30 @@ function ChannelPage() {
                     />
                   )}
                 </div>
+                <MessageHoverMenu
+                  isOwn={m.user_id === user?.id}
+                  isPinned={Boolean(m.is_pinned)}
+                  onPin={() => handleTogglePin(m.id, !!m.is_pinned)}
+                  onDelete={() => handleDeleteMessage(m.id)}
+                  onReply={() => {}}
+                  onReact={() => {}}
+                  onCopyLink={() => {
+                    const link = `${window.location.origin}/canais/${channelId}?msg=${m.id}`;
+                    void navigator.clipboard.writeText(link);
+                  }}
+                  onMarkUnread={() => {}}
+                  onForward={() => {}}
+                  onMore={(e) => {
+                    const rect = (e.currentTarget as HTMLElement)
+                      .closest("article")
+                      ?.getBoundingClientRect();
+                    setContextMenu({
+                      x: rect?.right ?? e.clientX,
+                      y: rect?.top ?? e.clientY,
+                      messageId: m.id,
+                    });
+                  }}
+                />
               </article>
             ))
           )}
@@ -633,6 +696,49 @@ function ChannelPage() {
       )}
       {inviteOpen && serverId && (
         <InviteModal serverId={serverId} onClose={() => setInviteOpen(false)} />
+      )}
+
+      {contextMenu && (
+        <MessageContextMenu
+          x={contextMenu.x}
+          y={contextMenu.y}
+          isOwn={messages.find((m) => m.id === contextMenu.messageId)?.user_id === user?.id}
+          onClose={() => setContextMenu(null)}
+          onReact={() => {}}
+          onReply={() => {}}
+          onForward={() => {}}
+          onCopyText={() => {
+            const msg = messages.find((m) => m.id === contextMenu.messageId);
+            if (msg?.content) void navigator.clipboard.writeText(msg.content);
+          }}
+          onPin={() => {
+            const msg = messages.find((m) => m.id === contextMenu.messageId);
+            if (msg) void handleTogglePin(msg.id, !!msg.is_pinned);
+          }}
+          onMarkUnread={() => {}}
+          onCopyLink={() => {
+            const link = `${window.location.origin}/canais/${channelId}?msg=${contextMenu.messageId}`;
+            void navigator.clipboard.writeText(link);
+          }}
+          onSpeak={() => {
+            const msg = messages.find((m) => m.id === contextMenu.messageId);
+            if (msg?.content && "speechSynthesis" in window) {
+              const u = new SpeechSynthesisUtterance(msg.content);
+              u.lang = "pt-BR";
+              speechSynthesis.cancel();
+              speechSynthesis.speak(u);
+            }
+          }}
+          onReport={() => {}}
+          onDelete={
+            messages.find((m) => m.id === contextMenu.messageId)?.user_id === user?.id
+              ? () => {
+                  const msg = messages.find((m) => m.id === contextMenu.messageId);
+                  if (msg) void handleDeleteMessage(msg.id);
+                }
+              : undefined
+          }
+        />
       )}
     </div>
   );
