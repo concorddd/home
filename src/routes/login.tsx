@@ -7,7 +7,9 @@ import {
   createGoogleNonce,
   GOOGLE_CLIENT_ID,
   loadGoogleIdentity,
+  signInWithGoogleIdToken,
   type GoogleCredentialResponse,
+  type GoogleIdApi,
 } from "@/integrations/google";
 import { useServerFn } from "@tanstack/react-start";
 import { loginByUsername } from "@/lib/auth-functions";
@@ -36,13 +38,12 @@ export const Route = createFileRoute("/login")({
 
 type UsernameState = "idle" | "checking" | "available" | "taken" | "invalid";
 
-  const showLogo = true;
-
 function LoginPage() {
   const navigate = useNavigate();
   const { session, loading: authLoading } = useAuth();
   const gisRef = useRef<HTMLDivElement | null>(null);
-      const googleNonceRef = useRef<string | null>(null);
+  const googleNonceRef = useRef<string | null>(null);
+  const googleApiRef = useRef<GoogleIdApi | null>(null);
   const [googleReady, setGoogleReady] = useState(false);
   const [mode, setMode] = useState<"signin" | "signup">("signin");
   const [email, setEmail] = useState("");
@@ -65,10 +66,6 @@ function LoginPage() {
   // Validação assíncrona (com debounce) do @username no cadastro
   useEffect(() => {
     if (mode !== "signup") return;
-    <div className="flex flex-col items-center gap-4 mb-8">
-      <img src="/concord/logo.svg" alt="Concord" className="size-16" />
-      <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-blue-400">Concord</h1>
-    </div>
     const value = username.trim().replace(/^@/, "");
     if (!value) {
       setUsernameState("idle");
@@ -100,10 +97,12 @@ function LoginPage() {
         const google = await loadGoogleIdentity();
         const { raw, hashed } = await createGoogleNonce();
         if (cancelled) return;
+        googleApiRef.current = google;
         googleNonceRef.current = raw;
         google.initialize({
           client_id: GOOGLE_CLIENT_ID,
           nonce: hashed,
+          use_fedcm_for_popup: true,
           callback: (response) => {
             void handleGoogleCredential(response);
           },
@@ -176,23 +175,45 @@ function LoginPage() {
     }
   }
 
+  // Re-prepara o nonce anti-replay após uma tentativa malsucedida, para que
+  // o próximo clique no botão do Google gere um token válido.
+  async function rearmGoogleNonce() {
+    try {
+      const google = googleApiRef.current;
+      if (!google) return;
+      const { raw, hashed } = await createGoogleNonce();
+      googleNonceRef.current = raw;
+      google.initialize({
+        client_id: GOOGLE_CLIENT_ID,
+        nonce: hashed,
+        use_fedcm_for_popup: true,
+        callback: (response) => {
+          void handleGoogleCredential(response);
+        },
+      });
+    } catch {
+      // Se não conseguir rearmar, segue com o nonce atual.
+    }
+  }
+
   async function handleGoogleCredential(response: GoogleCredentialResponse) {
+    // Popup fechado/bloqueado antes de concluir:
     if (!response.credential) {
-      setError("Não foi possível confirmar sua conta Google. Tente novamente.");
+      setError("A janela do Google foi fechada antes de concluir o login. Tente de novo.");
       return;
     }
     setError(null);
     setBusy(true);
     try {
-      const { error } = await supabase.auth.signInWithIdToken({
-        provider: "google",
-        token: response.credential,
-        ...(googleNonceRef.current ? { nonce: googleNonceRef.current } : {}),
-      });
-      if (error) throw error;
+      // A troca do token e a tradução dos erros ficam no serviço dedicado
+      // (src/integrations/google.ts) — a UI só exibe o resultado.
+      const result = await signInWithGoogleIdToken(response.credential, googleNonceRef.current);
+      if (!result.ok) {
+        setError(result.error);
+        await rearmGoogleNonce();
+        return;
+      }
       navigate({ to: "/canais", replace: true });
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Falha no login com Google.");
     } finally {
       setBusy(false);
     }
@@ -205,6 +226,10 @@ function LoginPage() {
         className="pointer-events-none absolute inset-0 bg-[radial-gradient(60%_50%_at_50%_0%,var(--primary)_0%,transparent_70%)] opacity-[0.18]"
       />
       <div className="animate-fade-up relative w-full max-w-md rounded-2xl bg-channels p-8 shadow-[0_24px_64px_-24px_rgba(0,0,0,0.8)] ring-1 ring-white/[0.05]">
+        <div className="mb-6 flex flex-col items-center gap-2">
+          <img src="/concord/logo.svg" alt="Concord" className="size-14" />
+          <span className="text-lg font-bold tracking-tight text-foreground">Concord</span>
+        </div>
         <div className="text-center">
           <h1 className="text-balance-tight text-2xl font-bold">
             {mode === "signin" ? "Que bom te ver de novo!" : "Criar uma conta"}
@@ -325,8 +350,13 @@ function LoginPage() {
           <span className="h-px flex-1 bg-border" />
         </div>
 
-        <div className={googleReady ? "flex justify-center" : "hidden"}>
-          <div ref={gisRef} />
+        <div className={`relative flex justify-center ${googleReady ? "" : "hidden"}`}>
+          <div ref={gisRef} className={busy ? "pointer-events-none opacity-60" : ""} />
+          {busy && (
+            <span className="absolute inset-0 flex items-center justify-center gap-2 text-xs font-medium text-muted-foreground">
+              <Loader2 className="size-4 animate-spin" /> Conectando com o Google…
+            </span>
+          )}
         </div>
         {!googleReady && (
           <button
@@ -334,8 +364,8 @@ function LoginPage() {
             onClick={() =>
               setError(
                 GOOGLE_CLIENT_ID
-                  ? "Não foi possível carregar o login do Google. Atualize a página e tente de novo."
-                  : "O login com Google ainda não está configurado neste deploy. Use e-mail e senha por enquanto.",
+                  ? "Não foi possível carregar o login do Google. Verifique bloqueadores de pop-up/cookies, ou atualize a página e tente de novo."
+                  : "O login com Google ainda não está configurado neste deploy: defina VITE_GOOGLE_CLIENT_ID no .env e cadastre o mesmo Client ID no Lovable Cloud (Users & auth → Google). Use e-mail e senha por enquanto.",
               )
             }
             className="flex w-full items-center justify-center gap-3 rounded-lg bg-secondary px-4 py-2.5 text-sm font-medium transition-all duration-200 hover:bg-accent"
