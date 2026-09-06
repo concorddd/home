@@ -1,7 +1,8 @@
-import { useNavigate } from "@tanstack/react-router";
-import { ExternalLink, Trash } from "lucide-react";
+import { MoreHorizontal, StickyNote, Trash, UserPlus } from "lucide-react";
 import { useAuth, type Profile } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
+import { SmartStatusDot } from "@/components/StatusDot";
+import { ProfileModal } from "@/components/ProfileModal";
 import { useEffect, useState } from "react";
 
 export type Peer = Profile;
@@ -12,10 +13,10 @@ type Props = {
 };
 
 export function ProfilePanel({ profile, onClose }: Props) {
-  const navigate = useNavigate();
   const { user } = useAuth();
   const [removing, setRemoving] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
+  const [modalOpen, setModalOpen] = useState(false);
 
   const name = profile.display_name || profile.username || "Usuario";
   const isSelf = profile.id === user?.id;
@@ -41,22 +42,38 @@ export function ProfilePanel({ profile, onClose }: Props) {
     }
   }
 
-  async function openFullProfile() {
-    onClose();
-    navigate({ to: "/perfil/$userId", params: { userId: profile.id } });
-  }
-
   return (
-    <aside
-      className="hidden w-[340px] shrink-0 flex-col border-l border-[#1e1f22] bg-panel-perfil shadow-2xl animate-in fade-in lg:flex"
-      onClick={(e) => e.stopPropagation()}
-    >
+    <>
+      <aside
+        className="hidden w-[340px] shrink-0 flex-col border-l border-[#1e1f22] bg-panel-perfil shadow-2xl animate-in fade-in lg:flex"
+        onClick={(e) => e.stopPropagation()}
+      >
       {/* Banner de destaque — cor dinâmica do usuário (fallback #11a0f4) */}
       <div className="shrink-0">
         <div
           className="relative h-[120px] w-full"
           style={{ backgroundColor: profile.banner_color || "#11a0f4" }}
-        />
+        >
+          {!isSelf && (
+            <div className="absolute top-2 right-2 flex gap-1.5">
+              <button
+                title="Adicionar amigo"
+                aria-label="Adicionar amigo"
+                className="flex size-8 items-center justify-center rounded-full bg-black/40 text-white/80 transition-colors hover:bg-black/60 hover:text-white"
+              >
+                <UserPlus className="size-4" />
+              </button>
+              <button
+                title="Mais opções"
+                aria-label="Mais opções"
+                onClick={() => setShowConfirm(true)}
+                className="flex size-8 items-center justify-center rounded-full bg-black/40 text-white/80 transition-colors hover:bg-black/60 hover:text-white"
+              >
+                <MoreHorizontal className="size-4" />
+              </button>
+            </div>
+          )}
+        </div>
       </div>
 
       <div className="flex flex-1 flex-col overflow-y-auto">
@@ -72,9 +89,9 @@ export function ProfilePanel({ profile, onClose }: Props) {
           </button>
         </div>
 
-        {/* Avatar 80x80 sobre o banner, com recorte estático na cor do painel */}
-        <div className="-mt-10 flex justify-center">
-          <div className="rounded-full">
+        {/* Avatar 80x80 alinhado à esquerda, sobre a divisória banner/painel */}
+        <div className="relative -mt-10 px-4">
+          <div className="relative w-fit">
             {profile.avatar_url ? (
               <img
                 src={profile.avatar_url}
@@ -89,12 +106,23 @@ export function ProfilePanel({ profile, onClose }: Props) {
                 {name.charAt(0).toUpperCase()}
               </div>
             )}
+            {/* Ícone de status no canto inferior direito do avatar */}
+            <SmartStatusDot
+              status={profile.status}
+              isOnline={profile.is_online}
+              lastActiveAt={profile.last_active_at}
+              ring="border-panel-perfil"
+              className="absolute right-0 bottom-0 size-5 border-4"
+            />
           </div>
         </div>
 
         {/* Identidade */}
-        <div className="px-5 pt-3 text-center">
-          <h2 className="text-xl font-semibold text-[#dbdee1]">{name}</h2>
+        <div className="px-4 pt-3">
+          <div className="flex items-center gap-1.5">
+            <h2 className="truncate text-lg font-bold text-[#dbdee1]">{name}</h2>
+            <StickyNote className="size-4 shrink-0 text-[#949ba4]" aria-label="Nota" />
+          </div>
           {profile.username && profile.username.length > 0 && (
             <p className="mb-3 text-sm text-[#949ba4]">@{profile.username}</p>
           )}
@@ -105,7 +133,7 @@ export function ProfilePanel({ profile, onClose }: Props) {
             <p className="mb-2 text-sm italic text-[#949ba4]">Sem descricao.</p>
           )}
 
-          <div className="mt-3 flex items-center justify-center gap-2 text-sm text-[#dbdee1]">
+          <div className="mt-3 flex items-center gap-2 text-sm text-[#dbdee1]">
             <span
               className={`size-2 rounded-full ${
                 profile.is_online
@@ -127,10 +155,10 @@ export function ProfilePanel({ profile, onClose }: Props) {
         {/* Ações no rodapé */}
         <div className="mt-auto border-t border-[#2b2d31] p-3">
           <button
-            onClick={openFullProfile}
-            className="flex w-full items-center justify-center gap-2 rounded-lg bg-[#404249] px-4 py-2.5 text-sm font-semibold text-[#dbdee1] transition-colors hover:bg-[#4e5058]"
+            onClick={() => setModalOpen(true)}
+            className="flex w-full items-center justify-center rounded-lg bg-[#404249] px-4 py-2.5 text-sm font-semibold text-[#dbdee1] transition-colors hover:bg-[#4e5058]"
           >
-            <ExternalLink className="size-4" /> Ver perfil completo
+            Ver Perfil Completo
           </button>
           {!isSelf && (
             <div className="relative mt-1">
@@ -171,7 +199,10 @@ export function ProfilePanel({ profile, onClose }: Props) {
           )}
         </div>
       </div>
-    </aside>
+      </aside>
+
+      {modalOpen && <ProfileModal profile={profile} onClose={() => setModalOpen(false)} />}
+    </>
   );
 }
 

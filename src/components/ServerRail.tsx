@@ -1,4 +1,4 @@
-﻿import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { MessagesSquare, Plus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -68,7 +68,7 @@ export function ServerRail({
     <>
       <nav
         aria-label="Servidores"
-        className="flex w-[72px] shrink-0 flex-col items-center gap-3 overflow-y-auto bg-servers py-4"
+        className="flex w-[72px] shrink-0 flex-col items-center gap-2 overflow-y-auto bg-servers py-4"
       >
         <button
           onClick={() => navigate({ to: "/amigos" })}
@@ -77,7 +77,7 @@ export function ServerRail({
           className={`flex size-12 shrink-0 items-center justify-center transition-all duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] ${
             homeActive
               ? "rounded-2xl bg-primary text-primary-foreground shadow-[0_8px_24px_-8px_var(--primary)]"
-              : "rounded-3xl bg-channels text-foreground hover:rounded-2xl hover:bg-primary hover:text-primary-foreground"
+              : "rounded-full bg-channels text-foreground hover:rounded-2xl hover:bg-primary hover:text-primary-foreground"
           }`}
         >
           <MessagesSquare className="size-6" />
@@ -92,7 +92,7 @@ export function ServerRail({
             className={`flex size-12 shrink-0 items-center justify-center overflow-hidden text-[13px] font-semibold tracking-tight transition-all duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] ${
               s.id === activeServerId
                 ? "rounded-2xl bg-primary text-primary-foreground shadow-[0_8px_24px_-8px_var(--primary)]"
-                : "rounded-3xl bg-channels text-foreground hover:rounded-2xl hover:bg-primary hover:text-primary-foreground"
+                : "rounded-full bg-channels text-foreground hover:rounded-2xl hover:bg-primary hover:text-primary-foreground"
             }`}
           >
             {s.icon_url ? (
@@ -110,7 +110,7 @@ export function ServerRail({
           data-tour="add-server"
           aria-label="Adicionar um servidor"
           title="Adicionar um servidor"
-          className="flex size-12 shrink-0 items-center justify-center rounded-3xl bg-channels text-[#3ba55d] transition-all duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] hover:rounded-2xl hover:bg-[#3ba55d] hover:text-white"
+          className="flex size-12 shrink-0 items-center justify-center rounded-full bg-channels text-[#3ba55d] transition-all duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] hover:rounded-2xl hover:bg-[#3ba55d] hover:text-white"
         >
           <Plus className="size-6" />
         </button>
