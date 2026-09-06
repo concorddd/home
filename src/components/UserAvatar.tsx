@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
 
 export function UserAvatar({
@@ -9,14 +10,20 @@ export function UserAvatar({
   avatarUrl?: string | null;
   className?: string;
 }) {
-  const initials = username.slice(0, 2).toUpperCase();
+  const [broken, setBroken] = useState(false);
+  // Se a URL mudar (upload de nova foto), limpa o estado de erro.
+  useEffect(() => setBroken(false), [avatarUrl]);
+  const initials = (username || "?").slice(0, 2).toUpperCase();
 
-  if (avatarUrl) {
+  // Se a imagem do storage falhar (404/expirada), cai para as iniciais
+  // em vez de renderizar um <img> vazio.
+  if (avatarUrl && !broken) {
     return (
       <img
         src={avatarUrl}
         alt={`Avatar de ${username}`}
         loading="lazy"
+        onError={() => setBroken(true)}
         className={cn("size-8 rounded-full object-cover", className)}
       />
     );

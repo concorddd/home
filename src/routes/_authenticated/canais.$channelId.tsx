@@ -52,7 +52,7 @@ export const Route = createFileRoute("/_authenticated/canais/$channelId")({
 });
 
 type Server = { id: string; name: string; icon_url: string | null; owner_id: string };
-type Channel = { id: string; name: string; server_id: string | null; kind: string };
+type Channel = { id: string; name: string; server_id: string | null; kind?: string };
 type Author = {
   id: string;
   username: string;
@@ -150,25 +150,46 @@ function ChannelPage() {
     if (cachedMems) setMembers(cachedMems);
 
     void (async () => {
-      const [chansRes, memsRes] = await Promise.all([
-        supabase
+      // Canais: tenta com a coluna "kind" (migrações novas); se ela não
+      // existir no banco, refaz sem ela para nunca quebrar a listagem.
+      let chansRes: { data: Channel[] | null; error: { message: string } | null } =
+        await supabase
           .from("channels")
           .select("id, name, server_id, kind")
           .eq("server_id", serverId)
-          .order("created_at", { ascending: true }),
-        supabase.from("server_members").select("user_id").eq("server_id", serverId),
-      ]);
+          .order("created_at", { ascending: true });
+      if (chansRes.error) {
+        const fb = await supabase
+          .from("channels")
+          .select("id, name, server_id")
+          .eq("server_id", serverId)
+          .order("created_at", { ascending: true });
+        chansRes = fb;
+      }
       const chans = (chansRes.data as Channel[]) ?? [];
       writeCache(`channels:${serverId}`, chans);
       setChannels(chans);
 
-      const ids = (memsRes.data ?? []).map((m) => m.user_id);
+      const memsRes = await supabase
+        .from("server_members")
+        .select("user_id")
+        .eq("server_id", serverId);
+      const ids = (memsRes.data ?? []).map((m) => m.user_id as string);
       if (ids.length) {
-        const { data: profs } = await supabase
+        // Perfis: tenta com presença (is_online/last_active_at); se não
+        // existirem no banco, refaz sem elas para os membros ainda aparecerem.
+        const primary = await supabase
           .from("profiles")
           .select("id, username, display_name, avatar_url, status, is_online, last_active_at")
           .in("id", ids);
-        const list = (profs as unknown as Author[]) ?? [];
+        const fallback = primary.error
+          ? await supabase
+              .from("profiles")
+              .select("id, username, display_name, avatar_url, status")
+              .in("id", ids)
+          : null;
+        const list = ((fallback?.data as unknown as Author[]) ??
+          (primary.data as unknown as Author[])) ?? [];
         writeCache(`members:${serverId}`, list);
         setMembers(list);
       } else {

@@ -2,7 +2,7 @@ import { createContext, useContext } from "react";
 
 export type CallPeer = {
   id: string;
-  username: string;
+  username: string | null;
   display_name: string | null;
   avatar_url: string | null;
 };

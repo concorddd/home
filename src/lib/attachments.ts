@@ -48,10 +48,23 @@ export async function uploadAttachment(
     xhr.upload.onprogress = (e) => {
       if (e.lengthComputable) onProgress(Math.round((e.loaded / e.total) * 100));
     };
-    xhr.onload = () =>
-      xhr.status >= 200 && xhr.status < 300
-        ? resolve()
-        : reject(new Error(`Falha no upload (${xhr.status}).`));
+    xhr.onload = () => {
+      if (xhr.status >= 200 && xhr.status < 300) {
+        resolve();
+        return;
+      }
+      let detail = "";
+      try {
+        const parsed = JSON.parse(xhr.responseText);
+        detail = parsed?.message || parsed?.error || "";
+      } catch {
+        detail = xhr.responseText || "";
+      }
+      const msg = /not found/i.test(detail)
+        ? "Bucket de anexos não existe. Aplique o script APLICAR_TUDO_NO_BANCO.sql no banco (Lovable → More → Cloud → Database → SQL)."
+        : `Falha no upload (${xhr.status}). ${detail}`.trim();
+      reject(new Error(msg));
+    };
     xhr.onerror = () => reject(new Error("Falha de rede durante o upload."));
     xhr.send(file);
   });

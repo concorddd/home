@@ -1,10 +1,12 @@
 import { useRef, useState } from "react";
 import { Loader2, Plus, Send, Smile, X } from "lucide-react";
+import { useServerFn } from "@tanstack/react-start";
 import { EmojiPicker } from "@/components/EmojiPicker";
 import { formatBytes, uploadAttachment, type UploadedAttachment } from "@/lib/attachments";
 import { useAuth } from "@/hooks/useAuth";
 import { AudioRecorder } from "@/components/AudioRecorder";
 import { supabase } from "@/integrations/supabase/client";
+import { ensureAllBuckets } from "@/lib/storage.functions";
 
 export function ChatInput({
   placeholder,
@@ -22,6 +24,7 @@ export function ChatInput({
   const [showAudioRecorder, setShowAudioRecorder] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+  const ensureBuckets = useServerFn(ensureAllBuckets);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -33,6 +36,7 @@ export function ChatInput({
       let attachment: UploadedAttachment | null = null;
       if (file) {
         setProgress(0);
+        await ensureBuckets().catch(() => undefined);
         attachment = await uploadAttachment(file, user.id, setProgress);
       }
       await onSend({ content, attachment });
@@ -51,6 +55,7 @@ export function ChatInput({
     if (!user) return;
     setSending(true);
     try {
+      await ensureBuckets().catch(() => undefined);
       const path = `audio/${user.id}/${Date.now()}.webm`;
       const { error: uploadError } = await supabase.storage.from("audio").upload(path, blob);
       if (uploadError) throw uploadError;
@@ -67,7 +72,12 @@ export function ChatInput({
       });
       setShowAudioRecorder(false);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Erro ao enviar áudio.");
+      const msg = err instanceof Error ? err.message : "Erro ao enviar áudio.";
+      setError(
+        /bucket not found|Bucket not found/i.test(msg)
+          ? "Bucket de áudio não encontrado. Aplique a migração/script APLICAR_TUDO_NO_BANCO.sql no banco (Lovable → More → Cloud → Database → SQL)."
+          : msg,
+      );
     } finally {
       setSending(false);
     }

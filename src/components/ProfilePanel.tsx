@@ -1,95 +1,72 @@
-import { UserAvatar } from "./UserAvatar";
-import { SmartStatusDot } from "./StatusDot";
-import { UserCheck, MoreHorizontal } from "lucide-react";
+﻿import { useNavigate } from "@tanstack/react-router";
+import { ExternalLink, Trash } from "lucide-react";
+import { useAuth, type Profile } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
+import { useState } from "react";
 
-type ProfileLike = {
-  id: string;
-  username: string;
-  display_name: string | null;
-  avatar_url: string | null;
-  bio?: string | null;
-  status?: string;
-  is_online?: boolean;
-  last_active_at?: string;
-  created_at?: string;
-};
+export type Peer = Profile;
 
 type Props = {
-  profile: ProfileLike | null;
+  profile: Peer;
   onClose: () => void;
 };
 
 export function ProfilePanel({ profile, onClose }: Props) {
-  const memberSince = profile?.created_at
-    ? new Date(profile.created_at).toLocaleDateString("pt-BR", {
-        month: "long",
-        year: "numeric",
-      })
-    : "—";
+  const navigate = useNavigate();
+  const { user } = useAuth();
+  const [removing, setRemoving] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
+
+  const name = profile.display_name || profile.username || "Usuario";
+  const isSelf = profile.id === user?.id;
+
+  async function handleRemoveFriend() {
+    if (!user || !showConfirm) return;
+    setRemoving(true);
+    try {
+      await supabase.from("friendships").delete().or(`and(requester_id.eq.${user.id},addressee_id.eq.${profile.id}),and(requester_id.eq.${profile.id},addressee_id.eq.${user.id})`);
+      onClose();
+    } finally {
+      setRemoving(false);
+      setShowConfirm(false);
+    }
+  }
+
+  async function openFullProfile() {
+    onClose();
+    navigate({ to: "/perfil/$userId", params: { userId: profile.id } });
+  }
 
   return (
-    <aside className="flex w-80 shrink-0 flex-col border-l border-[#1e1f22] bg-[#2b2d31] overflow-y-auto hidden lg:flex">
-      {/* Banner */}
-      <div className="relative h-24 bg-gradient-to-br from-[#5865F2] to-[#EB459E]">
-        {/* Botões de ação no banner */}
-        <div className="absolute top-2 right-2 flex gap-1">
-          <button className="rounded-full bg-black/40 p-1.5 text-white/80 hover:bg-black/60 hover:text-white transition-colors">
-            <UserCheck className="size-4" />
-          </button>
-          <button className="rounded-full bg-black/40 p-1.5 text-white/80 hover:bg-black/60 hover:text-white transition-colors">
-            <MoreHorizontal className="size-4" />
-          </button>
+    <aside className="fixed inset-y-0 right-0 w-80 border-l bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 animate-in slide-in-from-right" onClick={(e) => e.stopPropagation()}>
+      <div className="flex h-full flex-col">
+        <div className="flex items-center justify-between p-4 border-b">
+          <h3 className="text-sm font-semibold">Perfil</h3>
+          {!isSelf && (<button onClick={onClose} className="p-1.5 rounded text-muted-foreground hover:text-foreground hover:bg-accent" title="Fechar"> x </button>)}
         </div>
-      </div>
-
-      {/* Avatar flutuante */}
-      <div className="relative px-4">
-        <div className="absolute -top-10">
-          <div className="relative">
-            <UserAvatar
-              username={profile?.username ?? "?"}
-              avatarUrl={profile?.avatar_url ?? null}
-              className="size-20 border-[6px] border-[#2b2d31] text-2xl"
-            />
-            <SmartStatusDot
-              status={profile?.status}
-              isOnline={profile?.is_online}
-              lastActiveAt={profile?.last_active_at}
-              ring="border-[#2b2d31]"
-              className="size-5 border-[3px]"
-            />
+        <div className="flex justify-center py-4">
+          {profile.avatar_url ? (<img src={profile.avatar_url} alt={name} className="size-24 rounded-full object-cover border-2 border-accent" onError={(e) => { (e.target as HTMLImageElement).src = `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(name)}`; }} />) : (<div className="size-24 rounded-full bg-accent flex items-center justify-center text-2xl font-bold">{name.charAt(0).toUpperCase()}</div>)}
+        </div>
+        <div className="px-4">
+          <h2 className="text-center text-xl font-semibold">{name}</h2>
+          {profile.username && profile.username.length > 0 && (<p className="text-center text-sm text-muted-foreground mb-3">@{profile.username}</p>)}
+          {profile.bio && <p className="text-sm text-foreground/80 mb-2 break-words">{profile.bio}</p>}
+          {!profile.bio && <p className="text-sm text-muted-foreground mb-2 italic">Sem descricao.</p>}
+          <div className="mt-3 flex items-center gap-2 text-sm">
+            <span className={`size-2 rounded-full ${profile.is_online ? "bg-green-500" : profile.status === "ausente" ? "bg-yellow-500" : "bg-gray-500"}`} />
+            <span>{profile.is_online ? "Online" : profile.status === "ausente" ? "Ausente" : "Offline"}</span>
           </div>
+          {profile.created_at && profile.created_at.length > 0 && (<p className="text-xs text-muted-foreground mt-2">Membro desde: {new Date(profile.created_at).toLocaleDateString("pt-BR")}</p>)}
         </div>
-      </div>
-
-      {/* Informações do usuário */}
-      <div className="mt-14 px-4 pb-4">
-        <div className="rounded-lg bg-[#1e1f22] p-4">
-          <h2 className="text-lg font-bold text-white">
-            {profile?.display_name || profile?.username || "—"}
-          </h2>
-          <p className="text-sm text-gray-400">@{profile?.username ?? "—"}</p>
-
-          {/* Bio */}
-          {profile?.bio && (
-            <div className="mt-3 pt-3 border-t border-[#3f4147]">
-              <p className="text-xs font-semibold uppercase text-gray-400 mb-1">Sobre mim</p>
-              <p className="text-sm text-gray-300 whitespace-pre-wrap">{profile.bio}</p>
-            </div>
-          )}
-
-          {/* Membro desde */}
-          <div className="mt-3 pt-3 border-t border-[#3f4147]">
-            <p className="text-xs font-semibold uppercase text-gray-400 mb-1">Membro desde</p>
-            <p className="text-sm text-gray-300">{memberSince}</p>
-          </div>
+        <div className="mt-auto border-t p-2">
+          <button onClick={openFullProfile} className="flex w-full items-center gap-2 rounded-lg p-2 text-sm hover:bg-accent"><ExternalLink className="size-4" /> Ver perfil completo</button>
+          {!isSelf && (<div className="relative">
+            <button onClick={() => setShowConfirm(true)} className="flex w-full items-center gap-2 rounded-lg p-2 text-sm text-red-400 hover:bg-red/10"><Trash className="size-4" /> Remover amigo</button>
+            {showConfirm && (<div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60" onClick={() => setShowConfirm(false)}><div className="rounded-lg bg-popover p-5 shadow-xl max-w-sm" onClick={(e) => e.stopPropagation()}><h4 className="font-semibold mb-2">Remover amigo?</h4><p className="text-sm text-muted-foreground mb-4">Voce sera removido dos amigos de {name}.</p><div className="flex justify-end gap-2"><button onClick={() => setShowConfirm(false)} disabled={removing} className="px-4 py-2 text-sm rounded hover:bg-accent">Cancelar</button><button onClick={handleRemoveFriend} disabled={removing} className="px-4 py-2 text-sm text-white bg-red-500 rounded">{removing ? "Removendo..." : "Confirmar"}</button></div></div></div>)}
+          </div>)}
         </div>
-
-        {/* Botão Ver Perfil Completo */}
-        <button className="mt-3 w-full rounded-md bg-[#404249] py-2 text-sm font-medium text-white hover:bg-[#4e5058] transition-colors">
-          Ver Perfil Completo
-        </button>
       </div>
     </aside>
   );
 }
+

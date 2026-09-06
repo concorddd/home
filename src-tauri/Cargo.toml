@@ -1,0 +1,58 @@
+[package]
+name = "concord-desktop"
+version = "0.1.0"
+description = "Concord — clone do Discord com motor nativo de mídia"
+authors = ["Concord"]
+edition = "2021"
+
+# Motor de mídia: capture + encode + webrtc 100% nativos (fora do WebView).
+
+[lib]
+name = "concord_desktop_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[[bin]]
+name = "concord-desktop"
+path = "src/main.rs"
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+# --- Motor de captura (DXGI Desktop Duplication no Windows, X11 no Linux) ---
+scrap = "0.5"
+
+# --- Encoder de vídeo H.264 (software, ROI baixo de CPU; trocável por NVENC/MF) ---
+openh264 = { version = "0.9", features = ["source"] }
+
+# --- Cliente WebRTC nativo (webrtc-rs 0.20, runtime tokio) ---
+webrtc = { version = "0.20", default-features = true }
+tokio = { version = "1", features = ["full"] }
+bytes = "1"
+
+# --- Signaling leve via Supabase Data API (SDP/ICE apenas; mídia nunca passa por aqui) ---
+reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
+anyhow = "1"
+parking_lot = "0.12"
+log = "0.4"
+
+# --- Listagem de janelas específicas (EnumWindows) no Windows ---
+[target."cfg(windows)".dependencies]
+winapi = { version = "0.3", features = [
+  "winuser",
+  "windef",
+  "libloaderapi",
+  "handleapi",
+  "winnt",
+  "processthreadsapi",
+] }
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+strip = true

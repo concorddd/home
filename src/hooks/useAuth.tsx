@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useState, type ReactNode } from "
 import type { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { usePresence } from "@/hooks/usePresence";
+import { ensureAllBuckets } from "@/lib/storage.functions";
 
 export type Profile = {
   id: string;
@@ -25,6 +26,22 @@ type AuthContextValue = {
   refreshProfile: () => Promise<void>;
 };
 
+function normalizeProfile(raw: unknown): Profile {
+  const p = (raw ?? {}) as Record<string, unknown>;
+  return {
+    id: typeof p["id"] === "string" ? p["id"] : "",
+    username: typeof p["username"] === "string" ? p["username"] : "?",
+    display_name: typeof p["display_name"] === "string" ? p["display_name"] : null,
+    avatar_url: typeof p["avatar_url"] === "string" ? p["avatar_url"] : null,
+    banner_url: typeof p["banner_url"] === "string" ? p["banner_url"] : undefined,
+    bio: typeof p["bio"] === "string" ? p["bio"] : null,
+    status: typeof p["status"] === "string" ? p["status"] : "offline",
+    is_online: typeof p["is_online"] === "boolean" ? p["is_online"] : false,
+    last_active_at: typeof p["last_active_at"] === "string" ? p["last_active_at"] : undefined,
+    created_at: typeof p["created_at"] === "string" ? p["created_at"] : new Date().toISOString(),
+  };
+}
+
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -38,24 +55,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   usePresence(userId);
 
   async function loadProfile(id: string) {
-    // Tenta buscar com todos os campos; se alguma coluna não existir,
-    // faz fallback para a query sem ela (evita quebrar o perfil).
-    let { data } = await supabase
-      .from("profiles")
-      .select("id, username, display_name, avatar_url, banner_url, bio, status, is_online, last_active_at, created_at")
-      .eq("id", id)
-      .maybeSingle();
+    // Tentativa em cascata: o banco pode ainda não ter todas as colunas
+    // (migrações pendentes). Cada tentativa remove colunas que podem faltar.
+    const attempts = [
+      "id, username, display_name, avatar_url, banner_url, bio, status, is_online, last_active_at, created_at",
+      "id, username, display_name, avatar_url, banner_url, bio, status, created_at",
+      "id, username, display_name, avatar_url, status, created_at",
+    ];
 
-    if (data == null) {
-      const fallback = await supabase
+    for (const fields of attempts) {
+      const { data, error } = await supabase
         .from("profiles")
-        .select("id, username, display_name, avatar_url, banner_url, bio, status, created_at")
+        .select(fields)
         .eq("id", id)
         .maybeSingle();
-      data = fallback.data as unknown as typeof data;
+
+      if (data) {
+        setProfile(normalizeProfile(data));
+        return;
+      }
+
+      // Erro que não seja "coluna não existe" → para e mostra o erro
+      if (error && !/column .* does not exist|column .* does not exist/i.test(error.message)) {
+        break;
+      }
     }
 
-    setProfile((data as unknown as Profile) ?? null);
+    setProfile(null);
   }
 
   useEffect(() => {
@@ -79,6 +105,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return;
     }
     void loadProfile(userId);
+  }, [userId]);
+
+  // Garante que os buckets de storage existam quando o usuário faz login
+  useEffect(() => {
+    if (userId) {
+      void ensureAllBuckets().catch(console.error);
+    }
   }, [userId]);
 
   const value: AuthContextValue = {

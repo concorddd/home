@@ -1,4 +1,4 @@
-import { createFileRoute, useParams } from "@tanstack/react-router";
+﻿import { createFileRoute, useParams } from "@tanstack/react-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { AtSign, Loader2, Phone, Video as VideoIcon, Users, Trash2, Pin } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -13,28 +13,17 @@ import { UserAvatar } from "@/components/UserAvatar";
 import { ChatInput } from "@/components/ChatInput";
 import { MessageAttachment } from "@/components/MessageAttachment";
 import { SideDrawer, MenuButton } from "@/components/MobileShell";
-import { ProfilePanel } from "@/components/ProfilePanel";
+import { ProfilePanel, type Peer } from "@/components/ProfilePanel";
 import { AudioPlayer } from "@/components/AudioPlayer";
 import { parseMarkdown } from "@/lib/markdown";
 import { ArrowLeft } from "lucide-react";
-import { Link } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/_authenticated/dm/$userId")({
   head: () => ({ meta: [{ title: "Mensagem direta - Concord" }] }),
   component: DirectMessagePage,
 });
 
-type Peer = {
-  id: string;
-  username: string;
-  display_name: string | null;
-  avatar_url: string | null;
-  bio?: string | null;
-  status: string;
-  is_online?: boolean;
-  last_active_at?: string;
-  created_at: string;
-};
 
 type Dm = {
   id: string;

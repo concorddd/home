@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+﻿import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { MessagesSquare, Plus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";

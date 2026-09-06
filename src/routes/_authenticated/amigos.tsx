@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
-import { Check, Loader2, X, MessageSquare, Users, MoreHorizontal } from "lucide-react";
+import { Check, Loader2, X, MessageSquare, Users, MoreHorizontal, UserRound } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useFriends } from "@/hooks/useFriends";
@@ -28,6 +28,7 @@ function FriendsPage() {
   const [query, setQuery] = useState("");
   const [busy, setBusy] = useState(false);
   const [feedback, setFeedback] = useState<{ kind: "ok" | "err"; text: string } | null>(null);
+  const [removeTarget, setRemoveTarget] = useState<{ id: string; name: string } | null>(null);
 
   async function sendRequest(e: React.FormEvent) {
     e.preventDefault();
@@ -120,12 +121,32 @@ function FriendsPage() {
             ) : tab === "pendentes" ? (
               <PendentesTab incoming={incoming} outgoing={outgoing} onRespond={respond} onRemove={removeFriend} />
             ) : (
-              <TodosTab friends={friends} navigate={navigate} onRemove={removeFriend} />
+              <TodosTab friends={friends} navigate={navigate} onAskRemove={setRemoveTarget} />
             )}
           </div>
         </main>
         <MobileTabBar active="home" onServers={() => setDrawerOpen(true)} onProfile={() => setProfileOpen(true)} />
       </div>
+      {removeTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onClick={() => setRemoveTarget(null)}>
+          <div className="w-full max-w-sm rounded-xl bg-[#313338] p-5 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+            <h3 className="text-lg font-semibold text-white">Remover "{removeTarget.name}"?</h3>
+            <p className="mt-2 text-sm text-gray-400">Vocês deixarão de ser amigos. Vocês ainda poderão enviar novos pedidos de amizade no futuro.</p>
+            <div className="mt-5 flex justify-end gap-3">
+              <button onClick={() => setRemoveTarget(null)} className="rounded-md px-4 py-2 text-sm text-white hover:underline">Cancelar</button>
+              <button
+                onClick={async () => {
+                  await removeFriend(removeTarget.id);
+                  setRemoveTarget(null);
+                }}
+                className="rounded-md bg-[#da373c] px-4 py-2 text-sm font-medium text-white hover:bg-[#a12828]"
+              >
+                Remover
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       {profileOpen && <UserSettingsModal onClose={() => setProfileOpen(false)} />}
     </>
   );
@@ -204,10 +225,10 @@ function PendentesTab({ incoming, outgoing, onRespond, onRemove }: {
   );
 }
 
-function TodosTab({ friends, navigate, onRemove }: {
+function TodosTab({ friends, navigate, onAskRemove }: {
   friends: Array<{ id: string; profile: FriendProfile | null }>;
   navigate: (opts: { to: string; params: { userId: string } }) => void;
-  onRemove: (id: string) => void;
+  onAskRemove: (f: { id: string; name: string }) => void;
 }) {
   return (
     <div>
@@ -219,7 +240,13 @@ function TodosTab({ friends, navigate, onRemove }: {
       ) : (
         <ul className="space-y-0.5">
           {friends.map((f) => (
-            <li key={f.id} className="group flex items-center gap-3 rounded-lg px-3 py-2.5 transition-colors hover:bg-[#3f4147]">
+            <li
+              key={f.id}
+              onClick={() =>
+                f.profile && navigate({ to: "/perfil/$userId", params: { userId: f.profile.id } })
+              }
+              className="group flex cursor-pointer items-center gap-3 rounded-lg px-3 py-2.5 transition-colors hover:bg-[#3f4147]"
+            >
               <div className="relative shrink-0">
                 <UserAvatar username={f.profile?.username ?? "?"} avatarUrl={f.profile?.avatar_url ?? null} className="size-10 text-base" />
                 <SmartStatusDot status={f.profile?.status} isOnline={f.profile?.is_online} lastActiveAt={f.profile?.last_active_at} ring="border-[#313338]" className="size-3.5 border-2" />
@@ -238,10 +265,20 @@ function TodosTab({ friends, navigate, onRemove }: {
                 </p>
               </div>
               <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                <button onClick={() => f.profile && navigate({ to: "/dm/$userId", params: { userId: f.profile.id } })} className="rounded-full bg-[#2b2d31] p-2 text-gray-300 hover:bg-[#404249] hover:text-white" title="Mensagem">
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (f.profile) navigate({ to: "/perfil/$userId", params: { userId: f.profile.id } });
+                  }}
+                  className="rounded-full bg-[#2b2d31] p-2 text-gray-300 hover:bg-[#404249] hover:text-white"
+                  title="Ver perfil"
+                >
+                  <UserRound className="size-4" />
+                </button>
+                <button onClick={(e) => { e.stopPropagation(); f.profile && navigate({ to: "/dm/$userId", params: { userId: f.profile.id } }); }} className="rounded-full bg-[#2b2d31] p-2 text-gray-300 hover:bg-[#404249] hover:text-white" title="Mensagem">
                   <MessageSquare className="size-4" />
                 </button>
-                <button onClick={() => onRemove(f.id)} className="rounded-full bg-[#2b2d31] p-2 text-gray-300 hover:bg-[#404249] hover:text-white" title="Remover">
+                <button onClick={(e) => { e.stopPropagation(); onAskRemove({ id: f.id, name: f.profile?.display_name || f.profile?.username || "?" }); }} className="rounded-full bg-[#2b2d31] p-2 text-gray-300 hover:bg-[#404249] hover:text-white" title="Remover">
                   <MoreHorizontal className="size-4" />
                 </button>
               </div>

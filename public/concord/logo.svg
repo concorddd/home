@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 440 420">
+  <!-- Concord — logo principal (joystick) -->
+  <ellipse cx="240" cy="330" rx="128" ry="60" fill="#1f1f1f"/>
+  <ellipse cx="240" cy="315" rx="128" ry="58" fill="#3a3a3a"/>
+  <path d="M128 318 Q240 356 352 318 Q240 342 128 318 Z" fill="#0a0a0a"/>
+  <g transform="rotate(30 215 225)">
+    <rect x="199" y="145" width="32" height="165" rx="16" fill="#6e6e6e"/>
+  </g>
+  <circle cx="138" cy="118" r="64" fill="#e01b1b"/>
+  <path d="M95 116 Q138 166 183 118 Q146 146 110 132 Z" fill="#ffffff"/>
+</svg>

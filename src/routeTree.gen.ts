@@ -17,6 +17,7 @@ import { Route as AuthenticatedCanaisIndexRouteImport } from './routes/_authenti
 import { Route as AuthenticatedCanaisChannelIdRouteImport } from './routes/_authenticated/canais.$channelId'
 import { Route as AuthenticatedConviteCodeRouteImport } from './routes/_authenticated/convite.$code'
 import { Route as AuthenticatedDmUserIdRouteImport } from './routes/_authenticated/dm.$userId'
+import { Route as AuthenticatedPerfilUserIdRouteImport } from './routes/_authenticated/perfil.$userId'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -60,6 +61,12 @@ const AuthenticatedDmUserIdRoute = AuthenticatedDmUserIdRouteImport.update({
   path: '/dm/$userId',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedPerfilUserIdRoute =
+  AuthenticatedPerfilUserIdRouteImport.update({
+    id: '/perfil/$userId',
+    path: '/perfil/$userId',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -68,6 +75,7 @@ export interface FileRoutesByFullPath {
   '/canais/$channelId': typeof AuthenticatedCanaisChannelIdRoute
   '/convite/$code': typeof AuthenticatedConviteCodeRoute
   '/dm/$userId': typeof AuthenticatedDmUserIdRoute
+  '/perfil/$userId': typeof AuthenticatedPerfilUserIdRoute
   '/canais/': typeof AuthenticatedCanaisIndexRoute
 }
 export interface FileRoutesByTo {
@@ -77,6 +85,7 @@ export interface FileRoutesByTo {
   '/canais/$channelId': typeof AuthenticatedCanaisChannelIdRoute
   '/convite/$code': typeof AuthenticatedConviteCodeRoute
   '/dm/$userId': typeof AuthenticatedDmUserIdRoute
+  '/perfil/$userId': typeof AuthenticatedPerfilUserIdRoute
   '/canais': typeof AuthenticatedCanaisIndexRoute
 }
 export interface FileRoutesById {
@@ -88,6 +97,7 @@ export interface FileRoutesById {
   '/_authenticated/canais/$channelId': typeof AuthenticatedCanaisChannelIdRoute
   '/_authenticated/convite/$code': typeof AuthenticatedConviteCodeRoute
   '/_authenticated/dm/$userId': typeof AuthenticatedDmUserIdRoute
+  '/_authenticated/perfil/$userId': typeof AuthenticatedPerfilUserIdRoute
   '/_authenticated/canais/': typeof AuthenticatedCanaisIndexRoute
 }
 export interface FileRouteTypes {
@@ -99,6 +109,7 @@ export interface FileRouteTypes {
     | '/canais/$channelId'
     | '/convite/$code'
     | '/dm/$userId'
+    | '/perfil/$userId'
     | '/canais/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -108,6 +119,7 @@ export interface FileRouteTypes {
     | '/canais/$channelId'
     | '/convite/$code'
     | '/dm/$userId'
+    | '/perfil/$userId'
     | '/canais'
   id:
     | '__root__'
@@ -118,6 +130,7 @@ export interface FileRouteTypes {
     | '/_authenticated/canais/$channelId'
     | '/_authenticated/convite/$code'
     | '/_authenticated/dm/$userId'
+    | '/_authenticated/perfil/$userId'
     | '/_authenticated/canais/'
   fileRoutesById: FileRoutesById
 }
@@ -185,6 +198,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedDmUserIdRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/perfil/$userId': {
+      id: '/_authenticated/perfil/$userId'
+      path: '/perfil/$userId'
+      fullPath: '/perfil/$userId'
+      preLoaderRoute: typeof AuthenticatedPerfilUserIdRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
   }
 }
 
@@ -193,6 +213,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedCanaisChannelIdRoute: typeof AuthenticatedCanaisChannelIdRoute
   AuthenticatedConviteCodeRoute: typeof AuthenticatedConviteCodeRoute
   AuthenticatedDmUserIdRoute: typeof AuthenticatedDmUserIdRoute
+  AuthenticatedPerfilUserIdRoute: typeof AuthenticatedPerfilUserIdRoute
   AuthenticatedCanaisIndexRoute: typeof AuthenticatedCanaisIndexRoute
 }
 
@@ -201,6 +222,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedCanaisChannelIdRoute: AuthenticatedCanaisChannelIdRoute,
   AuthenticatedConviteCodeRoute: AuthenticatedConviteCodeRoute,
   AuthenticatedDmUserIdRoute: AuthenticatedDmUserIdRoute,
+  AuthenticatedPerfilUserIdRoute: AuthenticatedPerfilUserIdRoute,
   AuthenticatedCanaisIndexRoute: AuthenticatedCanaisIndexRoute,
 }
 

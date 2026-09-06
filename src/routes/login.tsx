@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+﻿import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -36,6 +36,8 @@ export const Route = createFileRoute("/login")({
 
 type UsernameState = "idle" | "checking" | "available" | "taken" | "invalid";
 
+  const showLogo = true;
+
 function LoginPage() {
   const navigate = useNavigate();
   const { session, loading: authLoading } = useAuth();
@@ -63,6 +65,10 @@ function LoginPage() {
   // Validação assíncrona (com debounce) do @username no cadastro
   useEffect(() => {
     if (mode !== "signup") return;
+    <div className="flex flex-col items-center gap-4 mb-8">
+      <img src="/concord/logo.svg" alt="Concord" className="size-16" />
+      <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-blue-400">Concord</h1>
+    </div>
     const value = username.trim().replace(/^@/, "");
     if (!value) {
       setUsernameState("idle");
