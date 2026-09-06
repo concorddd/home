@@ -5,6 +5,7 @@ import {
   Plus,
   UserPlus,
   Mic,
+  MicOff,
   Headphones,
   Settings,
   Loader2,
@@ -15,6 +16,7 @@ import {
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useCalls } from "@/hooks/call-context";
 import { UserAvatar } from "@/components/UserAvatar";
 import { SmartStatusDot, StatusDot } from "@/components/StatusDot";
 import { UserSettingsModal } from "@/components/UserSettingsModal";
@@ -90,6 +92,7 @@ function ChannelPage() {
   const { channelId } = useParams({ from: "/_authenticated/canais/$channelId" });
   const navigate = useNavigate();
   const { user, profile } = useAuth();
+  const { selfMute, selfDeafen, toggleSelfMute, toggleSelfDeafen } = useCalls();
   const sync = useRealtimeSync();
 
   const [servers, setServers] = useCached<Server[]>("servers", []);
@@ -494,35 +497,58 @@ function ChannelPage() {
           </ul>
         </div>
 
-        <div className="flex items-center gap-2 border-t border-border/60 bg-servers px-2 py-3">
-          <div className="relative">
-            <UserAvatar
-              username={profile?.username ?? "?"}
-              avatarUrl={profile?.avatar_url ?? null}
-            />
-            <StatusDot status={profile?.status} ring="border-servers" />
+        {/* Painel do usuário local — barra flutuante estilo composer */}
+        <div className="px-2 pb-2 pt-1">
+          <div className="flex h-[52px] items-center gap-2 rounded-lg bg-user-panel px-2 shadow-[0_8px_24px_-8px_rgba(0,0,0,0.6)] ring-1 ring-white/[0.04]">
+            <div className="relative shrink-0">
+              <UserAvatar username={profile?.username ?? "?"} avatarUrl={profile?.avatar_url ?? null} />
+              <StatusDot status={profile?.status} ring="border-user-panel" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-[13px] font-medium tracking-tight">
+                {profile?.display_name || profile?.username || "—"}
+              </p>
+              <p className="truncate text-[11px] text-muted-foreground">@{profile?.username ?? "—"}</p>
+            </div>
+            <button
+              onClick={toggleSelfMute}
+              title={selfMute || selfDeafen ? "Ativar microfone" : "Silenciar microfone"}
+              aria-label={selfMute || selfDeafen ? "Ativar microfone" : "Silenciar microfone"}
+              className={`relative flex size-8 shrink-0 items-center justify-center rounded transition-colors ${
+                selfMute || selfDeafen
+                  ? "text-[#f0553c] hover:bg-[#f0553c]/15"
+                  : "text-[#949ba4] hover:bg-accent/60 hover:text-[#dbdee1]"
+              }`}
+            >
+              {selfMute || selfDeafen ? <MicOff className="size-4" /> : <Mic className="size-4" />}
+            </button>
+            <button
+              onClick={toggleSelfDeafen}
+              title={selfDeafen ? "Desativar mute total" : "Mute total (não escutar e não falar)"}
+              aria-label={selfDeafen ? "Desativar mute total" : "Mute total"}
+              className={`relative flex size-8 shrink-0 items-center justify-center rounded transition-colors ${
+                selfDeafen
+                  ? "text-[#f0553c] hover:bg-[#f0553c]/15"
+                  : "text-[#949ba4] hover:bg-accent/60 hover:text-[#dbdee1]"
+              }`}
+            >
+              <Headphones className="size-4" />
+              {selfDeafen && (
+                <span
+                  aria-hidden
+                  className="absolute h-[1.5px] w-[22px] -rotate-[40deg] rounded bg-current"
+                />
+              )}
+            </button>
+            <button
+              onClick={() => setSettingsOpen(true)}
+              data-tour="settings"
+              aria-label="Configurações do usuário"
+              className="flex size-8 shrink-0 items-center justify-center rounded text-[#949ba4] transition-all duration-300 hover:rotate-45 hover:bg-accent/60 hover:text-[#dbdee1]"
+            >
+              <Settings className="size-4" />
+            </button>
           </div>
-          <div className="min-w-0 flex-1">
-            <p className="truncate text-[13px] font-medium tracking-tight">
-              {profile?.display_name || profile?.username || "—"}
-            </p>
-            <p className="truncate text-[11px] capitalize text-muted-foreground">
-              {profile?.status ?? "online"}
-            </p>
-          </div>
-          <button className="rounded p-1 text-muted-foreground transition-colors hover:bg-accent/60 hover:text-foreground">
-            <Mic className="size-4" />
-          </button>
-          <button className="rounded p-1 text-muted-foreground transition-colors hover:bg-accent/60 hover:text-foreground">
-            <Headphones className="size-4" />
-          </button>
-          <button
-            onClick={() => setSettingsOpen(true)}
-            aria-label="Configurações do usuário"
-            className="rounded p-1 text-muted-foreground transition-all duration-300 hover:rotate-45 hover:bg-accent/60 hover:text-foreground"
-          >
-            <Settings className="size-4" />
-          </button>
         </div>
       </aside>
       </SideDrawer>

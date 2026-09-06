@@ -7,6 +7,7 @@ import { useFriends } from "@/hooks/useFriends";
 import { ServerRail } from "@/components/ServerRail";
 import { DirectSidebar } from "@/components/DirectSidebar";
 import { SideDrawer, MenuButton, MobileTabBar } from "@/components/MobileShell";
+import { ProfilePanel, type Peer } from "@/components/ProfilePanel";
 import { UserSettingsModal } from "@/components/UserSettingsModal";
 import { UserAvatar } from "@/components/UserAvatar";
 import { SmartStatusDot } from "@/components/StatusDot";
@@ -19,12 +20,13 @@ export const Route = createFileRoute("/_authenticated/amigos")({
 type Tab = "todos" | "pendentes" | "adicionar";
 
 function FriendsPage() {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const navigate = useNavigate();
   const { friends, incoming, outgoing, reload } = useFriends();
   const [tab, setTab] = useState<Tab>("todos");
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
+  const [selectedFriend, setSelectedFriend] = useState<FriendProfile | null>(null);
   const [query, setQuery] = useState("");
   const [busy, setBusy] = useState(false);
   const [feedback, setFeedback] = useState<{ kind: "ok" | "err"; text: string } | null>(null);
@@ -121,10 +123,13 @@ function FriendsPage() {
             ) : tab === "pendentes" ? (
               <PendentesTab incoming={incoming} outgoing={outgoing} onRespond={respond} onRemove={removeFriend} />
             ) : (
-              <TodosTab friends={friends} navigate={navigate} onAskRemove={setRemoveTarget} />
+              <TodosTab friends={friends} navigate={navigate} onAskRemove={setRemoveTarget} onSelect={setSelectedFriend} />
             )}
           </div>
         </main>
+        {selectedFriend && (
+          <ProfilePanel profile={selectedFriend as unknown as Peer} onClose={() => setSelectedFriend(null)} />
+        )}
         <MobileTabBar active="home" onServers={() => setDrawerOpen(true)} onProfile={() => setProfileOpen(true)} />
       </div>
       {removeTarget && (
@@ -225,10 +230,11 @@ function PendentesTab({ incoming, outgoing, onRespond, onRemove }: {
   );
 }
 
-function TodosTab({ friends, navigate, onAskRemove }: {
+function TodosTab({ friends, navigate, onAskRemove, onSelect }: {
   friends: Array<{ id: string; profile: FriendProfile | null }>;
   navigate: (opts: { to: string; params: { userId: string } }) => void;
   onAskRemove: (f: { id: string; name: string }) => void;
+  onSelect: (profile: FriendProfile) => void;
 }) {
   return (
     <div>
@@ -242,9 +248,7 @@ function TodosTab({ friends, navigate, onAskRemove }: {
           {friends.map((f) => (
             <li
               key={f.id}
-              onClick={() =>
-                f.profile && navigate({ to: "/perfil/$userId", params: { userId: f.profile.id } })
-              }
+              onClick={() => f.profile && onSelect(f.profile)}
               className="group flex cursor-pointer items-center gap-3 rounded-lg px-3 py-2.5 transition-colors hover:bg-[#2b2d31]"
             >
               <div className="relative shrink-0">

@@ -214,21 +214,8 @@ export function ProfileModal({ profile, onClose }: { profile: Profile; onClose: 
 
           <div className="flex-1 overflow-y-auto pt-6">
             {tab === "atividade" && (
-              /* Card de atividade mockado */
-              <div className="rounded-lg bg-[#2b2d31] p-4">
-                <div className="flex items-center gap-3">
-                  <div className="flex size-16 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-[#ff4655] to-[#bd3944] text-2xl font-black text-white">
-                    V
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-semibold text-[#dbdee1]">
-                      Jogando VALORANT
-                    </p>
-                    <p className="mt-0.5 text-xs text-[#949ba4]">3d atrás</p>
-                    <p className="mt-0.5 text-xs text-[#949ba4]">Competitivo · Ascent</p>
-                  </div>
-                  <Gamepad2 className="size-5 shrink-0 text-[#949ba4]" />
-                </div>
+              <div className="flex h-48 items-center justify-center rounded-lg bg-[#2b2d31]/40">
+                <p className="text-sm text-[#949ba4]">Nenhuma atividade recente.</p>
               </div>
             )}
             {tab === "amigos" && (
