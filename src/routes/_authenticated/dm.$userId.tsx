@@ -1,4 +1,4 @@
-﻿import { createFileRoute, useParams } from "@tanstack/react-router";
+import { createFileRoute, useParams } from "@tanstack/react-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { AtSign, Loader2, Phone, Video as VideoIcon, Users, Trash2, Pin } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -278,15 +278,15 @@ return (
                   />
                   <div className="min-w-0 flex-1">
                     <p className="flex items-baseline gap-2">
-                      <span className="text-sm font-semibold tracking-tight">
+                      <span className="text-sm font-semibold tracking-tight text-[#f9a620]">
                         {mine ? profile?.display_name || profile?.username || "Voce" : peerName}
                       </span>
-                      <span className="text-[11px] tabular-nums text-muted-foreground">
+                      <span className="text-[11px] tabular-nums text-[#808287]">
                         {new Date(m.created_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
                       </span>
                     </p>
                     {m.content && (
-                      <div className="break-words text-[15px] leading-[1.6] text-foreground/90">
+                      <div className="break-words text-[15px] leading-[1.6] text-[#c7c8cc]">
                         {parseMarkdown(m.content)}
                       </div>
                     )}
@@ -302,9 +302,9 @@ return (
                       />
                     )}
                   </div>
-                  <div className="absolute -top-2 -right-2 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-0.5 bg-[#2b2d31] rounded-lg shadow-lg border border-[#1e1f22] p-0.5">
+                  <div className="absolute -top-2 -right-2 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-0.5 bg-[#242629] rounded-lg shadow-lg border border-[#141517] p-0.5">
                     {mine && (
-                      <button onClick={() => handleDeleteMessage(m.id)} className="p-1.5 rounded text-gray-400 hover:text-red-400 hover:bg-[#35373c] transition-colors" title="Apagar">
+                      <button onClick={() => handleDeleteMessage(m.id)} className="p-1.5 rounded text-[#808287] hover:text-red-400 hover:bg-[#282a2e] transition-colors" title="Apagar">
                         <Trash2 className="size-3.5" />
                       </button>
                     )}
@@ -312,8 +312,8 @@ return (
                       onClick={() => handleTogglePin(m.id, Boolean(m.is_pinned))}
                       className={`p-1.5 rounded transition-colors ${
                         m.is_pinned
-                          ? "text-[#5865F2] bg-[#35373c]"
-                          : "text-gray-400 hover:text-[#5865F2] hover:bg-[#35373c]"
+                          ? "text-[#f9a620] bg-[#282a2e]"
+                          : "text-[#808287] hover:text-[#f9a620] hover:bg-[#282a2e]"
                       }`}
                       title={m.is_pinned ? "Desafixar" : "Fixar"}
                     >

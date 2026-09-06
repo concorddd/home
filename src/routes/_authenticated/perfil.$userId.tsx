@@ -147,7 +147,7 @@ return (
             >
               {/* Banner */}
               <div
-                className="relative h-36 w-full bg-[#1a1d21]"
+                className="relative h-36 w-full bg-[#1a1b1e]"
                 style={
                   profile.banner_url
                     ? {
@@ -155,7 +155,7 @@ return (
                         backgroundSize: "cover",
                         backgroundPosition: "center",
                       }
-                    : { backgroundImage: "linear-gradient(135deg, #31363d, #1a1d21)" }
+                    : { backgroundColor: "#f9a620" }
                 }
               />
 
@@ -166,7 +166,7 @@ return (
                     <UserAvatar
                       username={profile.username ?? "?"}
                       avatarUrl={profile.avatar_url ?? null}
-                      className="size-28 border-4 border-channels text-3xl shadow-lg"
+                      className="size-28 text-3xl shadow-lg ring-4 ring-[#f9a620]"
                     />
                     <SmartStatusDot
                       status={profile.status}

@@ -154,7 +154,7 @@ export function CreateChannelModal({
     >
       <div
         onMouseDown={(e) => e.stopPropagation()}
-        className="animate-fade-up relative flex max-h-[92dvh] w-full max-w-[460px] flex-col overflow-hidden rounded-lg bg-[#313338] shadow-[0_24px_64px_-16px_rgba(0,0,0,0.9)]"
+        className="animate-fade-up relative flex max-h-[92dvh] w-full max-w-[460px] flex-col overflow-hidden rounded-lg bg-[#1a1b1e] shadow-[0_24px_64px_-16px_rgba(0,0,0,0.9)]"
       >
         {/* Cabeçalho */}
         <div className="px-4 pt-5">
@@ -165,11 +165,11 @@ export function CreateChannelModal({
           >
             <X className="size-5" />
           </button>
-          <h2 className="text-xl font-bold text-white">Criar canal</h2>
+          <h2 className="text-xl font-bold text-[#c7c8cc]">Criar canal</h2>
           <p className="mt-1 flex items-center gap-1.5 text-[13px] text-muted-foreground">
             <PrefixIcon className="size-4" />
             <span>em</span>
-            <span className="font-medium text-[#dbdee1]">{categoryName.toUpperCase()}</span>
+            <span className="font-medium text-[#c7c8cc]">{categoryName.toUpperCase()}</span>
           </p>
         </div>
 
@@ -191,23 +191,23 @@ export function CreateChannelModal({
                       onClick={() => setKind(opt.id)}
                       aria-pressed={active}
                       className={`flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left transition-colors ${
-                        active ? "bg-[#4e5058]/60" : "bg-transparent hover:bg-white/[0.04]"
+                        active ? "bg-[#3a3d42]/60" : "bg-transparent hover:bg-white/[0.04]"
                       }`}
                     >
                       <span
                         aria-hidden
                         className={`flex size-5 shrink-0 items-center justify-center rounded-full transition-all ${
                           active
-                            ? "border-[6px] border-[#5865f2] bg-white"
-                            : "border-2 border-[#80858e] bg-transparent"
+                            ? "border-[6px] border-[#f9a620] bg-white"
+                            : "border-2 border-[#808287] bg-transparent"
                         }`}
                       />
-                      <Icon className="size-5 shrink-0 text-[#b5bac1]" />
+                      <Icon className="size-5 shrink-0 text-[#808287]" />
                       <span className="min-w-0">
-                        <span className="block text-[15px] font-medium text-[#f2f3f5]">
+                        <span className="block text-[15px] font-medium text-[#c7c8cc]">
                           {opt.title}
                         </span>
-                        <span className="block truncate text-[13px] text-[#b5bac1]">
+                        <span className="block truncate text-[13px] text-[#808287]">
                           {opt.description}
                         </span>
                       </span>
@@ -225,8 +225,8 @@ export function CreateChannelModal({
               >
                 Nome do canal
               </label>
-              <div className="flex items-center gap-2 rounded-lg bg-[#1e1f22] px-3 py-2.5 ring-1 ring-transparent transition-shadow focus-within:ring-2 focus-within:ring-[#5865f2]">
-                <PrefixIcon className="size-5 shrink-0 text-[#80858e]" />
+              <div className="flex items-center gap-2 rounded-lg bg-[#141517] px-3 py-2.5 ring-1 ring-transparent transition-shadow focus-within:ring-2 focus-within:ring-[#f9a620]">
+                <PrefixIcon className="size-5 shrink-0 text-[#808287]" />
                 <input
                   id="channel-name"
                   autoFocus
@@ -234,7 +234,7 @@ export function CreateChannelModal({
                   maxLength={32}
                   onChange={(e) => setName(e.target.value)}
                   placeholder="novo-canal"
-                  className="min-w-0 flex-1 bg-transparent text-[15px] text-[#dbdee1] outline-none placeholder:text-[#6d6f78]"
+                  className="min-w-0 flex-1 bg-transparent text-[15px] text-[#c7c8cc] outline-none placeholder:text-[#808287]"
                 />
               </div>
             </fieldset>
@@ -242,11 +242,11 @@ export function CreateChannelModal({
             {/* Canal privado */}
             <div className="flex items-center gap-3 rounded-lg px-1 py-1">
               <div className="min-w-0 flex-1">
-                <p className="flex items-center gap-1.5 text-[15px] font-medium text-[#f2f3f5]">
-                  <Lock className="size-4 text-[#b5bac1]" />
+                <p className="flex items-center gap-1.5 text-[15px] font-medium text-[#c7c8cc]">
+                  <Lock className="size-4 text-[#808287]" />
                   Canal privado
                 </p>
-                <p className="mt-0.5 text-[13px] leading-snug text-[#b5bac1]">
+                <p className="mt-0.5 text-[13px] leading-snug text-[#808287]">
                   Apenas você e os membros que você escolher poderão ver este canal.
                 </p>
               </div>
@@ -254,7 +254,7 @@ export function CreateChannelModal({
                 checked={isPrivate}
                 onCheckedChange={setIsPrivate}
                 aria-label="Canal privado"
-                className="data-[state=checked]:bg-[#5865f2]"
+                className="data-[state=checked]:bg-[#f9a620]"
               />
             </div>
 
@@ -262,7 +262,7 @@ export function CreateChannelModal({
           </div>
 
           {/* Rodapé */}
-          <div className="flex items-center justify-end gap-4 bg-[#2b2d31] px-4 py-4">
+          <div className="flex items-center justify-end gap-4 bg-[#242629] px-4 py-4">
             <button
               type="button"
               onClick={onClose}
@@ -273,7 +273,7 @@ export function CreateChannelModal({
             <button
               type="submit"
               disabled={submitting}
-              className="flex items-center gap-2 rounded-[3px] bg-[#5865f2] px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-[#4752c4] disabled:opacity-60"
+              className="flex items-center gap-2 rounded-[3px] bg-[#f9a620] px-4 py-2.5 text-sm font-medium text-[#1a1b1e] transition-colors hover:bg-[#e2941a] disabled:opacity-60"
             >
               {submitting && <Loader2 className="size-4 animate-spin" />}
               Criar canal

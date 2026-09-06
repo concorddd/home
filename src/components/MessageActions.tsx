@@ -44,7 +44,7 @@ export function MessageActions({
               e.stopPropagation();
               setShowMenu(!showMenu);
             }}
-            className="rounded p-1.5 text-gray-400 hover:bg-[#3f4147] hover:text-white transition-colors"
+            className="rounded p-1.5 text-[#808287] hover:bg-[#242629] hover:text-[#c7c8cc] transition-colors"
             title="Mais ações"
           >
             <MoreHorizontal className="size-4" />
@@ -56,7 +56,7 @@ export function MessageActions({
                 e.stopPropagation();
                 onDelete();
               }}
-              className="rounded p-1.5 text-gray-400 hover:bg-[#3f4147] hover:text-red-400 transition-colors"
+              className="rounded p-1.5 text-[#808287] hover:bg-[#242629] hover:text-red-400 transition-colors"
               title="Apagar mensagem"
             >
               <Trash2 className="size-4" />
@@ -70,8 +70,8 @@ export function MessageActions({
             }}
             className={`rounded p-1.5 transition-colors ${
               isPinned
-                ? "text-[#5865F2] bg-[#5865F2]/10"
-                : "text-gray-400 hover:bg-[#3f4147] hover:text-white"
+                ? "text-[#f9a620] bg-[#f9a620]/10"
+                : "text-[#808287] hover:bg-[#242629] hover:text-[#c7c8cc]"
             }`}
             title={isPinned ? "Desfixar mensagem" : "Fixar mensagem"}
           >
@@ -82,7 +82,7 @@ export function MessageActions({
 
       {showMenu && (
         <div
-          className={`absolute top-6 z-50 w-48 rounded-md bg-[#111214] py-1 shadow-xl border border-[#1e1f22] ${
+          className={`absolute top-6 z-50 w-48 rounded-md bg-[#111214] py-1 shadow-xl border border-[#141517] ${
             isOwn ? "right-0" : "left-0"
           }`}
         >
@@ -92,7 +92,7 @@ export function MessageActions({
               onPin();
               setShowMenu(false);
             }}
-            className="flex w-full items-center gap-2 px-3 py-2 text-sm text-gray-300 hover:bg-[#5865F2] hover:text-white transition-colors"
+            className="flex w-full items-center gap-2 px-3 py-2 text-sm text-[#c7c8cc] hover:bg-[#f9a620] hover:text-[#1a1b1e] transition-colors"
           >
             <Pin className="size-4" />
             {isPinned ? "Desfixar" : "Fixar mensagem"}
@@ -104,7 +104,7 @@ export function MessageActions({
               navigator.clipboard.writeText(messageId);
               setShowMenu(false);
             }}
-            className="flex w-full items-center gap-2 px-3 py-2 text-sm text-gray-300 hover:bg-[#5865F2] hover:text-white transition-colors"
+            className="flex w-full items-center gap-2 px-3 py-2 text-sm text-[#c7c8cc] hover:bg-[#f9a620] hover:text-[#1a1b1e] transition-colors"
           >
             <Copy className="size-4" />
             Copiar ID
@@ -131,7 +131,7 @@ export function MessageActions({
                 onMore();
                 setShowMenu(false);
               }}
-              className="flex w-full items-center gap-2 px-3 py-2 text-sm text-gray-300 hover:bg-[#5865F2] hover:text-white transition-colors"
+              className="flex w-full items-center gap-2 px-3 py-2 text-sm text-[#c7c8cc] hover:bg-[#f9a620] hover:text-[#1a1b1e] transition-colors"
             >
               <MoreHorizontal className="size-4" />
               Mais opções

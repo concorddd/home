@@ -14,8 +14,8 @@ export const STATUS_COLORS: Record<string, string> = {
   ocupado: "#f23f43",
   "não perturbe": "#f23f43",
   "não perturbar": "#f23f43",
-  invisível: "#80848e",
-  offline: "#80848e",
+  invisível: "#808287",
+  offline: "#808287",
 };
 
 export function statusColor(status: string | null | undefined): string {

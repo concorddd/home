@@ -65,21 +65,21 @@ export function AudioPlayer({ src, duration: initialDuration }: Props) {
   const progress = duration > 0 ? (currentTime / duration) * 100 : 0;
 
   return (
-    <div className="flex items-center gap-3 rounded-lg bg-[#2b2d31] p-3 min-w-[280px]">
+    <div className="flex items-center gap-3 rounded-lg bg-[#242629] p-3 min-w-[280px]">
       <audio ref={audioRef} src={src} preload="metadata" />
 
       <button
         onClick={togglePlay}
-        className="flex size-10 shrink-0 items-center justify-center rounded-full bg-[#5865F2] text-white hover:bg-[#4752C4] transition-colors"
+        className="flex size-10 shrink-0 items-center justify-center rounded-full bg-[#f9a620] text-[#1a1b1e] hover:bg-[#e2941a] transition-colors"
       >
         {playing ? <Pause className="size-5" /> : <Play className="size-5 ml-0.5" />}
       </button>
 
       <div className="flex-1">
         {/* Barra de progresso */}
-        <div className="relative h-2 rounded-full bg-[#404249] overflow-hidden">
+        <div className="relative h-2 rounded-full bg-[#282a2e] overflow-hidden">
           <div
-            className="absolute inset-y-0 left-0 bg-[#5865F2] rounded-full transition-all"
+            className="absolute inset-y-0 left-0 bg-[#f9a620] rounded-full transition-all"
             style={{ width: `${progress}%` }}
           />
           <input
@@ -93,13 +93,13 @@ export function AudioPlayer({ src, duration: initialDuration }: Props) {
         </div>
 
         {/* Tempo */}
-        <div className="mt-1 flex justify-between text-xs text-gray-400">
+        <div className="mt-1 flex justify-between text-xs text-[#808287]">
           <span>{formatTime(currentTime)}</span>
           <span>{formatTime(duration)}</span>
         </div>
       </div>
 
-      <Volume2 className="size-4 text-gray-400 shrink-0" />
+      <Volume2 className="size-4 text-[#808287] shrink-0" />
     </div>
   );
 }

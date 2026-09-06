@@ -21,8 +21,8 @@ export function parseMarkdown(text: string): React.ReactNode[] {
       if (inCodeBlock) {
         // Fechar bloco de código
         elements.push(
-          <pre key={`code-${i}`} className="my-1 rounded bg-[#1e1f22] p-3 overflow-x-auto">
-            <code className="text-sm text-gray-200 font-mono">{codeBlockContent.join("\n")}</code>
+          <pre key={`code-${i}`} className="my-1 rounded bg-[#141517] p-3 overflow-x-auto">
+            <code className="text-sm text-[#c7c8cc] font-mono">{codeBlockContent.join("\n")}</code>
           </pre>
         );
         codeBlockContent = [];
@@ -44,7 +44,7 @@ export function parseMarkdown(text: string): React.ReactNode[] {
     // Citação
     if (line.startsWith("> ")) {
       elements.push(
-        <blockquote key={`quote-${i}`} className="my-1 border-l-4 border-[#4f545c] pl-3 text-gray-300 italic">
+        <blockquote key={`quote-${i}`} className="my-1 border-l-4 border-[#3a3d42] pl-3 text-[#c7c8cc] italic">
           {parseInlineMarkdown(line.slice(2))}
         </blockquote>
       );
@@ -62,8 +62,8 @@ export function parseMarkdown(text: string): React.ReactNode[] {
   // Fechar bloco de código se ainda estiver aberto
   if (inCodeBlock) {
     elements.push(
-      <pre key="code-end" className="my-1 rounded bg-[#1e1f22] p-3 overflow-x-auto">
-        <code className="text-sm text-gray-200 font-mono">{codeBlockContent.join("\n")}</code>
+      <pre key="code-end" className="my-1 rounded bg-[#141517] p-3 overflow-x-auto">
+        <code className="text-sm text-[#c7c8cc] font-mono">{codeBlockContent.join("\n")}</code>
       </pre>
     );
   }
@@ -92,31 +92,31 @@ function parseInlineMarkdown(text: string): React.ReactNode[] {
 
     if (bold) {
       elements.push(
-        <strong key={`b-${keyIndex++}`} className="font-bold text-white">
+        <strong key={`b-${keyIndex++}`} className="font-bold text-[#c7c8cc]">
           {bold}
         </strong>
       );
     } else if (italic1) {
       elements.push(
-        <em key={`i-${keyIndex++}`} className="italic text-gray-200">
+        <em key={`i-${keyIndex++}`} className="italic text-[#c7c8cc]">
           {italic1}
         </em>
       );
     } else if (italic2) {
       elements.push(
-        <em key={`i-${keyIndex++}`} className="italic text-gray-200">
+        <em key={`i-${keyIndex++}`} className="italic text-[#c7c8cc]">
           {italic2}
         </em>
       );
     } else if (strikethrough) {
       elements.push(
-        <del key={`s-${keyIndex++}`} className="line-through text-gray-400">
+        <del key={`s-${keyIndex++}`} className="line-through text-[#808287]">
           {strikethrough}
         </del>
       );
     } else if (code) {
       elements.push(
-        <code key={`c-${keyIndex++}`} className="rounded bg-[#1e1f22] px-1.5 py-0.5 text-sm font-mono text-[#e8912d]">
+        <code key={`c-${keyIndex++}`} className="rounded bg-[#141517] px-1.5 py-0.5 text-sm font-mono text-[#e8912d]">
           {code}
         </code>
       );

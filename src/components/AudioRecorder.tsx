@@ -67,7 +67,7 @@ export function AudioRecorder({ onSend, onCancel }: Props) {
 
   if (audioBlob) {
     return (
-      <div className="flex items-center gap-2 rounded-lg bg-[#2b2d31] p-2">
+      <div className="flex items-center gap-2 rounded-lg bg-[#242629] p-2">
         <audio
           src={URL.createObjectURL(audioBlob)}
           controls
@@ -76,13 +76,13 @@ export function AudioRecorder({ onSend, onCancel }: Props) {
         />
         <button
           onClick={handleSend}
-          className="rounded-full bg-[#5865F2] p-2 text-white hover:bg-[#4752C4] transition-colors"
+          className="rounded-full bg-[#f9a620] p-2 text-[#1a1b1e] hover:bg-[#e2941a] transition-colors"
         >
           <Send className="size-4" />
         </button>
         <button
           onClick={onCancel}
-          className="rounded-full bg-[#404249] p-2 text-white hover:bg-[#4e5058] transition-colors"
+          className="rounded-full bg-[#282a2e] p-2 text-[#c7c8cc] hover:bg-[#3a3d42] transition-colors"
         >
           <X className="size-4" />
         </button>
@@ -95,13 +95,13 @@ export function AudioRecorder({ onSend, onCancel }: Props) {
       {!recording ? (
         <button
           onClick={startRecording}
-          className="rounded-full bg-[#5865F2] p-3 text-white hover:bg-[#4752C4] transition-colors"
+          className="rounded-full bg-[#f9a620] p-3 text-[#1a1b1e] hover:bg-[#e2941a] transition-colors"
           title="Gravar áudio"
         >
           <Mic className="size-5" />
         </button>
       ) : (
-        <div className="flex items-center gap-2 rounded-lg bg-[#2b2d31] px-3 py-2">
+        <div className="flex items-center gap-2 rounded-lg bg-[#242629] px-3 py-2">
           <span className="flex items-center gap-1 text-red-500 text-sm font-medium">
             <span className="size-2 rounded-full bg-red-500 animate-pulse" />
             {formatTime(duration)}

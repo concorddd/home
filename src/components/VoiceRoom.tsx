@@ -80,7 +80,7 @@ function ScreenSharePreview({ stream, onStop }: { stream: MediaStream; onStop: (
   }, [stream]);
 
   return (
-    <div className="relative rounded-lg overflow-hidden bg-[#1e1f22] ring-2 ring-[#5865F2] lg:col-span-2 lg:row-span-2">
+    <div className="relative rounded-lg overflow-hidden bg-[#141517] ring-2 ring-[#f9a620] lg:col-span-2 lg:row-span-2">
       <video
         ref={videoRef}
         autoPlay
@@ -88,7 +88,7 @@ function ScreenSharePreview({ stream, onStop }: { stream: MediaStream; onStop: (
         muted
         className="w-full h-full object-contain min-h-[300px]"
       />
-      <div className="absolute top-2 left-2 flex items-center gap-2 bg-[#5865F2] rounded px-2 py-1">
+      <div className="absolute top-2 left-2 flex items-center gap-2 bg-[#f9a620] rounded px-2 py-1">
         <MonitorUp className="h-4 w-4" />
         <span className="text-xs font-medium">Você está compartilhando sua tela</span>
       </div>
@@ -576,22 +576,22 @@ export function VoiceRoom({
   // ---- render ----
   if (connecting) {
     return (
-      <div className="flex flex-col items-center justify-center h-full bg-[#313338] text-white">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#5865F2] mb-4" />
+      <div className="flex flex-col items-center justify-center h-full bg-[#1a1b1e] text-[#c7c8cc]">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#f9a620] mb-4" />
         <p className="text-lg font-medium">Conectando...</p>
-        <p className="text-sm text-gray-400 mt-1">{channelName}</p>
+        <p className="text-sm text-[#808287] mt-1">{channelName}</p>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="flex flex-col items-center justify-center h-full bg-[#313338] text-white p-6">
+      <div className="flex flex-col items-center justify-center h-full bg-[#1a1b1e] text-[#c7c8cc] p-6">
         <AlertTriangle className="h-12 w-12 text-red-500 mb-4" />
         <p className="text-lg font-medium text-center">{error}</p>
         <button
           onClick={leaveCall}
-          className="mt-6 px-6 py-2 bg-[#5865F2] hover:bg-[#4752C4] rounded-md font-medium transition-colors"
+          className="mt-6 px-6 py-2 bg-[#f9a620] hover:bg-[#e2941a] rounded-md font-medium transition-colors"
         >
           Voltar
         </button>
@@ -602,15 +602,15 @@ export function VoiceRoom({
   const localStream = localStreamRef.current;
 
   return (
-    <div className="flex flex-col h-full bg-[#313338] text-white">
+    <div className="flex flex-col h-full bg-[#1a1b1e] text-[#c7c8cc]">
       {/* header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-[#1e1f22]">
+      <div className="flex items-center justify-between px-4 py-3 border-b border-[#141517]">
         <div className="flex items-center gap-2">
-          <Users className="h-5 w-5 text-gray-400" />
+          <Users className="h-5 w-5 text-[#808287]" />
           <span className="font-semibold">{channelName}</span>
-          <span className="text-xs text-gray-500 ml-2">{formatClock(callSeconds)}</span>
+          <span className="text-xs text-[#808287] ml-2">{formatClock(callSeconds)}</span>
         </div>
-        <span className="text-xs text-gray-400">
+        <span className="text-xs text-[#808287]">
           {peers.length + 1} participante{peers.length !== 0 ? "s" : ""}
         </span>
       </div>
@@ -630,7 +630,7 @@ export function VoiceRoom({
 
           {/* tile local */}
           <div
-            className={`relative rounded-lg overflow-hidden bg-[#1e1f22] ${speaking.has(selfId) ? "ring-2 ring-[#23a55a]" : ""}`}
+            className={`relative rounded-lg overflow-hidden bg-[#141517] ${speaking.has(selfId) ? "ring-2 ring-[#23a55a]" : ""}`}
           >
             {camOn && localStream && !sharing ? (
               <video
@@ -649,7 +649,7 @@ export function VoiceRoom({
             )}
             <div className="absolute bottom-2 left-2 flex items-center gap-1 bg-black/60 rounded px-2 py-1">
               <span className="text-xs font-medium">{displayName}</span>
-              <span className="text-[10px] text-gray-400">Você</span>
+              <span className="text-[10px] text-[#808287]">Você</span>
             </div>
             {!micOn && (
               <div className="absolute top-2 right-2 bg-red-500 rounded-full p-1">
@@ -657,7 +657,7 @@ export function VoiceRoom({
               </div>
             )}
             {sharing && (
-              <div className="absolute top-2 right-2 bg-[#5865F2] rounded-full p-1">
+              <div className="absolute top-2 right-2 bg-[#f9a620] rounded-full p-1">
                 <MonitorUp className="h-3 w-3" />
               </div>
             )}
@@ -667,7 +667,7 @@ export function VoiceRoom({
           {peers.map((peer) => (
             <div
               key={peer.userId}
-              className={`relative rounded-lg overflow-hidden bg-[#1e1f22] ${speaking.has(peer.userId) ? "ring-2 ring-[#23a55a]" : ""}`}
+              className={`relative rounded-lg overflow-hidden bg-[#141517] ${speaking.has(peer.userId) ? "ring-2 ring-[#23a55a]" : ""}`}
             >
               {peer.camOn && peer.stream ? (
                 <video
@@ -698,24 +698,24 @@ export function VoiceRoom({
       </div>
 
       {/* controles */}
-      <div className="flex items-center justify-center gap-3 py-4 border-t border-[#1e1f22]">
+      <div className="flex items-center justify-center gap-3 py-4 border-t border-[#141517]">
         <button
           onClick={toggleMic}
-          className={`p-3 rounded-full transition-colors ${micOn ? "bg-[#2b2d31] hover:bg-[#404249]" : "bg-red-500 hover:bg-red-600"}`}
+          className={`p-3 rounded-full transition-colors ${micOn ? "bg-[#242629] hover:bg-[#282a2e]" : "bg-red-500 hover:bg-red-600"}`}
           title={micOn ? "Desativar microfone" : "Ativar microfone"}
         >
           {micOn ? <Mic className="h-5 w-5" /> : <MicOff className="h-5 w-5" />}
         </button>
         <button
           onClick={toggleCam}
-          className={`p-3 rounded-full transition-colors ${camOn ? "bg-[#2b2d31] hover:bg-[#404249]" : "bg-red-500 hover:bg-red-600"}`}
+          className={`p-3 rounded-full transition-colors ${camOn ? "bg-[#242629] hover:bg-[#282a2e]" : "bg-red-500 hover:bg-red-600"}`}
           title={camOn ? "Desativar câmera" : "Ativar câmera"}
         >
           {camOn ? <Video className="h-5 w-5" /> : <VideoOff className="h-5 w-5" />}
         </button>
         <button
           onClick={toggleShare}
-          className={`p-3 rounded-full transition-colors ${sharing ? "bg-[#5865F2] hover:bg-[#4752C4]" : "bg-[#2b2d31] hover:bg-[#404249]"}`}
+          className={`p-3 rounded-full transition-colors ${sharing ? "bg-[#f9a620] hover:bg-[#e2941a]" : "bg-[#242629] hover:bg-[#282a2e]"}`}
           title={sharing ? "Parar de compartilhar" : "Compartilhar tela"}
         >
           <MonitorUp className="h-5 w-5" />

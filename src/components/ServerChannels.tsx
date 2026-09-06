@@ -441,7 +441,7 @@ export function ServerChannels({
         </div>
         <DragOverlay>
           {activeChannel ? (
-            <div className="cursor-grabbing rounded-lg bg-[#404249] px-2 py-2 shadow-xl ring-1 ring-white/10">
+            <div className="cursor-grabbing rounded-lg bg-[#282a2e] px-2 py-2 shadow-xl ring-1 ring-white/10">
               <span className="flex items-center gap-2 text-sm text-foreground">
                 <ChannelKindIcon channel={activeChannel} className="size-4 shrink-0" />
                 <span className="truncate tracking-tight">{activeChannel.name}</span>
@@ -556,7 +556,7 @@ type MenuItem =
 
 /**
  * Menu de contexto customizado, posicionado no cursor (estilo Discord):
- * fundo #111214, cantos arredondados, sombra suave, hover azul #5865f2.
+ * fundo #111214, cantos arredondados, sombra suave, hover azul #f9a620.
  */
 function ContextMenu({
   x,
@@ -615,7 +615,7 @@ function ContextMenu({
     >
       {items.map((item, i) =>
         "separator" in item && item.separator ? (
-          <div key={`sep-${i}`} className="mx-2 my-1 h-px bg-[#3f4147]" />
+          <div key={`sep-${i}`} className="mx-2 my-1 h-px bg-[#242629]" />
         ) : (
           <button
             key={`item-${i}`}
@@ -627,10 +627,10 @@ function ContextMenu({
             className={cn(
               "flex w-full items-center gap-2 px-2.5 py-1.5 text-left text-[14px] transition-colors",
               item.noHoverStyle
-                ? "text-[#b5bac1] hover:text-white"
+                ? "text-[#808287] hover:text-[#c7c8cc]"
                 : item.danger
-                  ? "text-[#f2f3f5] hover:bg-[#da373c] hover:text-white"
-                  : "text-[#b5bac1] hover:bg-[#5865f2] hover:text-white",
+                  ? "text-[#c7c8cc] hover:bg-[#da373c] hover:text-white"
+                  : "text-[#808287] hover:bg-[#f9a620] hover:text-[#1a1b1e]",
             )}
           >
             {item.icon && <span className="shrink-0">{item.icon}</span>}
@@ -639,8 +639,8 @@ function ContextMenu({
               <span
                 aria-hidden
                 className={cn(
-                  "flex size-[18px] shrink-0 items-center justify-center rounded-[3px] border-2 border-[#80858e]",
-                  item.checkbox && "border-[#5865f2] bg-[#5865f2]",
+                  "flex size-[18px] shrink-0 items-center justify-center rounded-[3px] border-2 border-[#808287]",
+                  item.checkbox && "border-[#f9a620] bg-[#f9a620]",
                 )}
               >
                 {item.checkbox && <Check className="size-3 text-white" />}
@@ -685,11 +685,11 @@ function CategorySection({
           >
             <ChevronDown
               className={cn(
-                "size-3 shrink-0 text-[#949ba4] transition-transform",
+                "size-3 shrink-0 text-[#808287] transition-transform",
                 collapsed && "-rotate-90",
               )}
             />
-            <span className="truncate text-[11px] font-bold uppercase tracking-[0.02em] text-[#949ba4] transition-colors hover:text-[#dbdee1]">
+            <span className="truncate text-[11px] font-bold uppercase tracking-[0.02em] text-[#808287] transition-colors hover:text-[#c7c8cc]">
               {name}
             </span>
           </button>
@@ -698,7 +698,7 @@ function CategorySection({
               onClick={onCreateChannel}
               aria-label={`Criar canal em ${name}`}
               title="Criar canal"
-              className="rounded p-0.5 text-[#949ba4] opacity-0 transition-opacity hover:text-[#dbdee1] focus-visible:opacity-100 group-hover/cat:opacity-100"
+              className="rounded p-0.5 text-[#808287] opacity-0 transition-opacity hover:text-[#c7c8cc] focus-visible:opacity-100 group-hover/cat:opacity-100"
             >
               <Plus className="size-4" />
             </button>
@@ -709,7 +709,7 @@ function CategorySection({
         ref={setNodeRef}
         className={cn(
           "transition-colors",
-          isOver && "rounded-lg bg-white/[0.04] ring-1 ring-[#5865f2]/50",
+          isOver && "rounded-lg bg-white/[0.04] ring-1 ring-[#f9a620]/50",
           collapsed && "min-h-1.5",
         )}
       >

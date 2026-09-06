@@ -51,9 +51,9 @@ export function DirectSidebar({ activeUserId }: { activeUserId?: string | null }
         <Link
           to="/amigos"
           data-tour="friends"
-          className="relative mb-4 flex w-full items-center gap-2 rounded-lg px-2 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent/50 hover:text-foreground [&.active]:bg-accent [&.active]:text-foreground"
+          className="relative mb-4 flex w-full items-center gap-2 rounded-lg px-2 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent/40 hover:text-foreground [&.active]:bg-accent [&.active]:text-accent-foreground"
         >
-          <Users className="size-4" />
+          <Users className="size-4 text-[#f9a620]" />
           <span className="flex-1">Amigos</span>
           <UnreadBadge count={incoming.length} />
         </Link>
@@ -78,8 +78,8 @@ export function DirectSidebar({ activeUserId }: { activeUserId?: string | null }
                   params={{ userId: p.id }}
                   className={`flex items-center gap-2 rounded-lg px-2 py-2 text-sm transition-colors ${
                     activeUserId === p.id
-                      ? "bg-accent text-foreground"
-                      : "text-muted-foreground hover:bg-accent/50 hover:text-foreground"
+                      ? "bg-accent text-accent-foreground"
+                      : "text-muted-foreground hover:bg-accent/40 hover:text-foreground"
                   }`}
                 >
                   <span className="relative shrink-0">
@@ -94,11 +94,11 @@ export function DirectSidebar({ activeUserId }: { activeUserId?: string | null }
                     <UnreadBadge count={unread} />
                   </span>
                   <span className="min-w-0 flex-1">
-                    <span className="block truncate text-[13px] font-medium text-foreground/90">
+                    <span className="block truncate text-[13px] font-medium text-foreground">
                       {p.display_name || p.username}
                     </span>
                     {summary?.lastContent && (
-                      <span className="block truncate text-xs text-gray-400">
+                      <span className="block truncate text-xs text-muted-foreground">
                         {summary.lastContent}
                       </span>
                     )}
@@ -121,17 +121,17 @@ export function DirectSidebar({ activeUserId }: { activeUserId?: string | null }
           </p>
           <p className="truncate text-[11px] text-muted-foreground">@{profile?.username ?? "—"}</p>
         </div>
-        <button className="rounded p-1 text-muted-foreground transition-colors hover:bg-accent/60 hover:text-foreground">
+        <button className="rounded p-1 text-[#f9a620] transition-colors hover:bg-accent/60 hover:text-[#f9a620]/80">
           <Mic className="size-4" />
         </button>
-        <button className="rounded p-1 text-muted-foreground transition-colors hover:bg-accent/60 hover:text-foreground">
+        <button className="rounded p-1 text-[#f9a620] transition-colors hover:bg-accent/60 hover:text-[#f9a620]/80">
           <Headphones className="size-4" />
         </button>
         <button
           onClick={() => setSettingsOpen(true)}
           data-tour="settings"
           aria-label="Configurações do usuário"
-          className="rounded p-1 text-muted-foreground transition-all duration-300 hover:rotate-45 hover:bg-accent/60 hover:text-foreground"
+          className="rounded p-1 text-[#f9a620] transition-all duration-300 hover:rotate-45 hover:bg-accent/60 hover:text-[#f9a620]/80"
         >
           <Settings className="size-4" />
         </button>

@@ -550,10 +550,10 @@ function ChannelPage() {
                 />
                 <div className="min-w-0">
                   <p className="flex items-baseline gap-2">
-                    <span className="text-sm font-semibold tracking-tight">
+                    <span className="text-sm font-semibold tracking-tight text-[#f9a620]">
                       {m.author?.display_name || m.author?.username || "Usuário"}
                     </span>
-                    <span className="text-[11px] tabular-nums text-muted-foreground">
+                    <span className="text-[11px] tabular-nums text-[#808287]">
                       {new Date(m.created_at).toLocaleTimeString("pt-BR", {
                         hour: "2-digit",
                         minute: "2-digit",
@@ -561,7 +561,7 @@ function ChannelPage() {
                     </span>
                   </p>
                   {m.content && (
-                    <div className="break-words text-[15px] leading-[1.6] text-foreground/90">
+                    <div className="break-words text-[15px] leading-[1.6] text-[#c7c8cc]">
                       {parseMarkdown(m.content)}
                     </div>
                   )}

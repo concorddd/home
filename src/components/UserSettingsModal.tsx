@@ -280,7 +280,7 @@ export function UserSettingsModal({ onClose }: { onClose: () => void }) {
 
             <div className="mt-6 overflow-hidden rounded-2xl bg-channels shadow-[0_16px_48px_-24px_rgba(0,0,0,0.9)]">
               <div
-                className="relative h-28 bg-gradient-to-r from-primary to-[#7d87ff] cursor-pointer group"
+                className="relative h-28 bg-gradient-to-r from-primary to-[#e2941a] cursor-pointer group"
                 style={profile?.banner_url ? { backgroundImage: `url(${profile.banner_url})`, backgroundSize: 'cover', backgroundPosition: 'center' } : undefined}
                 onClick={() => bannerRef.current?.click()}
               >

@@ -79,16 +79,16 @@ export function VoiceChannelPresence({ channelId, channelName, compact = false }
 
   return (
     <div className={`mt-1 ${compact ? "pl-2" : "pl-4"}`}>
-      <div className="flex items-center gap-1 text-[11px] text-gray-400 mb-1">
+      <div className="flex items-center gap-1 text-[11px] text-[#808287] mb-1">
         <Phone className="size-3" />
         <span>{channelName}</span>
-        <span className="text-gray-500">({users.length})</span>
+        <span className="text-[#808287]">({users.length})</span>
       </div>
       <div className="space-y-0.5">
         {users.map((u) => (
           <div
             key={u.id}
-            className="flex items-center gap-2 rounded px-1.5 py-1 hover:bg-[#35373c] transition-colors group"
+            className="flex items-center gap-2 rounded px-1.5 py-1 hover:bg-[#282a2e] transition-colors group"
           >
             <div className="relative shrink-0">
               <UserAvatar
@@ -99,11 +99,11 @@ export function VoiceChannelPresence({ channelId, channelName, compact = false }
               <SmartStatusDot
                 status={u.status}
                 isOnline={u.is_online}
-                ring="border-[#2b2d31]"
+                ring="border-[#242629]"
                 className="size-2.5 border"
               />
             </div>
-            <span className="text-xs text-gray-300 truncate group-hover:text-white transition-colors">
+            <span className="text-xs text-[#c7c8cc] truncate group-hover:text-[#c7c8cc] transition-colors">
               {u.display_name || u.username}
             </span>
           </div>
