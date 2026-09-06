@@ -57,7 +57,7 @@ function DirectMessagePage() {
       // pendente), refaz sem elas para o perfil nunca quebrar a conversa.
       const primary = await supabase
         .from("profiles")
-        .select("id, username, display_name, avatar_url, bio, status, is_online, last_active_at, created_at")
+        .select("id, username, display_name, avatar_url, banner_color, bio, status, is_online, last_active_at, created_at")
         .eq("id", userId)
         .maybeSingle();
       if (primary.error) {
@@ -278,15 +278,15 @@ return (
                   />
                   <div className="min-w-0 flex-1">
                     <p className="flex items-baseline gap-2">
-                      <span className="text-sm font-semibold tracking-tight text-[#f9a620]">
+                      <span className="text-sm font-semibold tracking-tight text-[#dbdee1]">
                         {mine ? profile?.display_name || profile?.username || "Voce" : peerName}
                       </span>
-                      <span className="text-[11px] tabular-nums text-[#808287]">
+                      <span className="text-[11px] tabular-nums text-[#949ba4]">
                         {new Date(m.created_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
                       </span>
                     </p>
                     {m.content && (
-                      <div className="break-words text-[15px] leading-[1.6] text-[#c7c8cc]">
+                      <div className="break-words text-[15px] leading-[1.6] text-[#dbdee1]">
                         {parseMarkdown(m.content)}
                       </div>
                     )}
@@ -302,9 +302,9 @@ return (
                       />
                     )}
                   </div>
-                  <div className="absolute -top-2 -right-2 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-0.5 bg-[#242629] rounded-lg shadow-lg border border-[#141517] p-0.5">
+                  <div className="absolute -top-2 -right-2 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-0.5 bg-[#2b2d31] rounded-lg shadow-lg border border-[#1e1f22] p-0.5">
                     {mine && (
-                      <button onClick={() => handleDeleteMessage(m.id)} className="p-1.5 rounded text-[#808287] hover:text-red-400 hover:bg-[#282a2e] transition-colors" title="Apagar">
+                      <button onClick={() => handleDeleteMessage(m.id)} className="p-1.5 rounded text-[#949ba4] hover:text-red-400 hover:bg-[#404249] transition-colors" title="Apagar">
                         <Trash2 className="size-3.5" />
                       </button>
                     )}
@@ -312,8 +312,8 @@ return (
                       onClick={() => handleTogglePin(m.id, Boolean(m.is_pinned))}
                       className={`p-1.5 rounded transition-colors ${
                         m.is_pinned
-                          ? "text-[#f9a620] bg-[#282a2e]"
-                          : "text-[#808287] hover:text-[#f9a620] hover:bg-[#282a2e]"
+                          ? "text-[#5865F2] bg-[#404249]"
+                          : "text-[#949ba4] hover:text-[#5865F2] hover:bg-[#404249]"
                       }`}
                       title={m.is_pinned ? "Desafixar" : "Fixar"}
                     >

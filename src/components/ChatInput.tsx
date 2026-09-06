@@ -84,7 +84,7 @@ export function ChatInput({
   }
 
   return (
-    <form onSubmit={submit} className="relative shrink-0 px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] md:px-6 md:pb-8">
+    <form onSubmit={submit} className="relative shrink-0 px-4 pb-[max(1.5rem,env(safe-area-inset-bottom))]">
       {error && <p className="mb-2 text-sm text-destructive">{error}</p>}
 
       {file && (
@@ -111,7 +111,7 @@ export function ChatInput({
           <AudioRecorder onSend={handleAudioSend} onCancel={() => setShowAudioRecorder(false)} />
         </div>
       ) : (
-        <div className="relative flex items-center gap-3 rounded-2xl bg-message-input px-4 py-3 shadow-[0_8px_32px_-12px_rgba(0,0,0,0.6)] ring-1 ring-white/[0.04] transition-all duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] focus-within:ring-primary/50">
+        <div className="relative flex items-center gap-3 rounded-lg bg-message-input px-4 py-3 shadow-[0_8px_32px_-12px_rgba(0,0,0,0.6)] ring-1 ring-white/[0.04] transition-all duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] focus-within:ring-primary/50">
           <input ref={fileRef} type="file" className="hidden" onChange={(e) => { const f = e.target.files?.[0] ?? null; setError(null); setFile(f); }} />
           <button type="button" onClick={() => fileRef.current?.click()} aria-label="Anexar arquivo" title="Anexar arquivo" className="shrink-0 rounded-full bg-accent/70 p-1 text-muted-foreground transition-all hover:scale-110 hover:text-foreground">
             <Plus className="size-4" />

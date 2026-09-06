@@ -83,36 +83,36 @@ function FriendsPage() {
 
   return (
     <>
-      <div className="flex h-screen overflow-hidden bg-[#1a1b1e]">
+      <div className="flex h-screen overflow-hidden bg-[#313338]">
         <SideDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)}>
           <ServerRail homeActive />
         </SideDrawer>
         <DirectSidebar activeUserId={null} />
         <main className="flex-1 flex flex-col min-w-0">
-          <div className="flex items-center gap-4 border-b border-[#141517] px-6 py-3">
+          <div className="flex items-center gap-4 border-b border-[#1e1f22] px-6 py-3">
             <MenuButton onClick={() => setDrawerOpen(true)} />
-            <Users className="size-5 text-[#f9a620]" />
-            <span className="font-semibold text-[#c7c8cc]">Amigos</span>
-            <div className="h-6 w-px bg-[#242629]" />
+            <Users className="size-5 text-[#949ba4]" />
+            <span className="font-semibold text-[#dbdee1]">Amigos</span>
+            <div className="h-6 w-px bg-[#2b2d31]" />
             <div className="flex items-center gap-1">
               {tabs.map((t) => (
-                <button key={t.id} onClick={() => setTab(t.id)} className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${tab === t.id ? "bg-[#282a2e] text-[#c7c8cc]" : "text-[#808287] hover:bg-[#282a2e] hover:text-[#c7c8cc]"}`}>
+                <button key={t.id} onClick={() => setTab(t.id)} className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${tab === t.id ? "bg-[#404249] text-[#dbdee1]" : "text-[#949ba4] hover:bg-[#404249] hover:text-[#dbdee1]"}`}>
                   {t.label}
                 </button>
               ))}
             </div>
-            <button onClick={() => setTab("adicionar")} className="ml-auto rounded-md bg-[#f9a620] px-4 py-1.5 text-sm font-medium text-[#1a1b1e] hover:bg-[#e2941a] transition-colors">
+            <button onClick={() => setTab("adicionar")} className="ml-auto rounded-md bg-[#5865F2] px-4 py-1.5 text-sm font-medium text-white hover:bg-[#4752c4] transition-colors">
               Adicionar Amigo
             </button>
           </div>
           <div className="flex-1 overflow-y-auto p-4">
             {tab === "adicionar" ? (
               <div className="max-w-2xl">
-                <h2 className="mb-2 text-xs font-semibold uppercase text-[#808287]">Adicionar amigo</h2>
-                <p className="mb-4 text-sm text-[#808287]">Você pode adicionar amigos pelo nome de usuário deles.</p>
+                <h2 className="mb-2 text-xs font-semibold uppercase text-[#949ba4]">Adicionar amigo</h2>
+                <p className="mb-4 text-sm text-[#949ba4]">Você pode adicionar amigos pelo nome de usuário deles.</p>
                 <form onSubmit={sendRequest} className="relative">
-                  <input type="text" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Digite o @username" className="w-full rounded-lg bg-[#141517] px-4 py-3 pr-32 text-sm text-[#c7c8cc] placeholder-[#808287] focus:outline-none focus:ring-2 focus:ring-[#f9a620]" />
-                  <button type="submit" disabled={busy || !query.trim()} className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md bg-[#f9a620] px-4 py-1.5 text-sm font-medium text-[#1a1b1e] hover:bg-[#e2941a] disabled:opacity-50 transition-colors">
+                  <input type="text" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Digite o @username" className="w-full rounded-lg bg-[#1e1f22] px-4 py-3 pr-32 text-sm text-[#dbdee1] placeholder-[#949ba4] focus:outline-none focus:ring-2 focus:ring-[#5865F2]" />
+                  <button type="submit" disabled={busy || !query.trim()} className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md bg-[#5865F2] px-4 py-1.5 text-sm font-medium text-white hover:bg-[#4752c4] disabled:opacity-50 transition-colors">
                     {busy ? <Loader2 className="size-4 animate-spin" /> : "Enviar Pedido"}
                   </button>
                 </form>
@@ -129,11 +129,11 @@ function FriendsPage() {
       </div>
       {removeTarget && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onClick={() => setRemoveTarget(null)}>
-          <div className="w-full max-w-sm rounded-xl bg-[#242629] p-5 shadow-2xl" onClick={(e) => e.stopPropagation()}>
-            <h3 className="text-lg font-semibold text-[#c7c8cc]">Remover "{removeTarget.name}"?</h3>
-            <p className="mt-2 text-sm text-[#808287]">Vocês deixarão de ser amigos. Vocês ainda poderão enviar novos pedidos de amizade no futuro.</p>
+          <div className="w-full max-w-sm rounded-xl bg-[#2b2d31] p-5 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+            <h3 className="text-lg font-semibold text-[#dbdee1]">Remover "{removeTarget.name}"?</h3>
+            <p className="mt-2 text-sm text-[#949ba4]">Vocês deixarão de ser amigos. Vocês ainda poderão enviar novos pedidos de amizade no futuro.</p>
             <div className="mt-5 flex justify-end gap-3">
-              <button onClick={() => setRemoveTarget(null)} className="rounded-md px-4 py-2 text-sm text-[#c7c8cc] hover:underline">Cancelar</button>
+              <button onClick={() => setRemoveTarget(null)} className="rounded-md px-4 py-2 text-sm text-[#dbdee1] hover:underline">Cancelar</button>
               <button
                 onClick={async () => {
                   await removeFriend(removeTarget.id);
@@ -170,51 +170,51 @@ function PendentesTab({ incoming, outgoing, onRespond, onRemove }: {
 }) {
   return (
     <div>
-      <h2 className="mb-4 text-xs font-semibold uppercase text-[#808287]">
+      <h2 className="mb-4 text-xs font-semibold uppercase text-[#949ba4]">
         Pendentes — {incoming.length + outgoing.length}
       </h2>
       <ul className="space-y-0.5">
         {incoming.length === 0 && outgoing.length === 0 && (
-          <li className="py-8 text-center text-sm text-[#808287]">Não há pedidos pendentes.</li>
+          <li className="py-8 text-center text-sm text-[#949ba4]">Não há pedidos pendentes.</li>
         )}
         {incoming.map((f) => (
-          <li key={f.id} className="group flex items-center gap-3 rounded-lg px-3 py-2.5 transition-colors hover:bg-[#242629]">
+          <li key={f.id} className="group flex items-center gap-3 rounded-lg px-3 py-2.5 transition-colors hover:bg-[#2b2d31]">
             <div className="relative shrink-0">
               <UserAvatar username={f.profile?.username ?? "?"} avatarUrl={f.profile?.avatar_url ?? null} className="size-10 text-base" />
-              <SmartStatusDot status={f.profile?.status} isOnline={f.profile?.is_online} lastActiveAt={f.profile?.last_active_at} ring="border-[#1a1b1e]" className="size-3.5 border-2" />
+              <SmartStatusDot status={f.profile?.status} isOnline={f.profile?.is_online} lastActiveAt={f.profile?.last_active_at} ring="border-[#313338]" className="size-3.5 border-2" />
             </div>
             <div className="min-w-0 flex-1">
-              <p className="text-sm font-medium text-[#c7c8cc] truncate">
+              <p className="text-sm font-medium text-[#dbdee1] truncate">
                 {f.profile?.display_name || f.profile?.username}
-                <span className="ml-1 text-xs font-normal text-[#808287]">@{f.profile?.username}</span>
+                <span className="ml-1 text-xs font-normal text-[#949ba4]">@{f.profile?.username}</span>
               </p>
-              <p className="text-xs text-[#808287]">Pedido de amizade recebido</p>
+              <p className="text-xs text-[#949ba4]">Pedido de amizade recebido</p>
             </div>
             <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-              <button onClick={() => onRespond(f.id, "accepted")} className="rounded-full bg-[#f9a620] p-2 text-[#1a1b1e] hover:bg-[#e2941a]" title="Aceitar">
+              <button onClick={() => onRespond(f.id, "accepted")} className="rounded-full bg-[#5865F2] p-2 text-white hover:bg-[#4752c4]" title="Aceitar">
                 <Check className="size-4" />
               </button>
-              <button onClick={() => onRespond(f.id, "declined")} className="rounded-full bg-[#282a2e] p-2 text-[#c7c8cc] hover:bg-[#3a3d42]" title="Recusar">
+              <button onClick={() => onRespond(f.id, "declined")} className="rounded-full bg-[#404249] p-2 text-[#dbdee1] hover:bg-[#4e5058]" title="Recusar">
                 <X className="size-4" />
               </button>
             </div>
           </li>
         ))}
         {outgoing.map((f) => (
-          <li key={f.id} className="group flex items-center gap-3 rounded-lg px-3 py-2.5 transition-colors hover:bg-[#242629]">
+          <li key={f.id} className="group flex items-center gap-3 rounded-lg px-3 py-2.5 transition-colors hover:bg-[#2b2d31]">
             <div className="relative shrink-0">
               <UserAvatar username={f.profile?.username ?? "?"} avatarUrl={f.profile?.avatar_url ?? null} className="size-10 text-base" />
-              <SmartStatusDot status={f.profile?.status} isOnline={f.profile?.is_online} lastActiveAt={f.profile?.last_active_at} ring="border-[#1a1b1e]" className="size-3.5 border-2" />
+              <SmartStatusDot status={f.profile?.status} isOnline={f.profile?.is_online} lastActiveAt={f.profile?.last_active_at} ring="border-[#313338]" className="size-3.5 border-2" />
             </div>
             <div className="min-w-0 flex-1">
-              <p className="text-sm font-medium text-[#c7c8cc] truncate">
+              <p className="text-sm font-medium text-[#dbdee1] truncate">
                 {f.profile?.display_name || f.profile?.username}
-                <span className="ml-1 text-xs font-normal text-[#808287]">@{f.profile?.username}</span>
+                <span className="ml-1 text-xs font-normal text-[#949ba4]">@{f.profile?.username}</span>
               </p>
-              <p className="text-xs text-[#808287]">Pedido de amizade enviado</p>
+              <p className="text-xs text-[#949ba4]">Pedido de amizade enviado</p>
             </div>
             <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-              <button onClick={() => onRemove(f.id)} className="rounded-full bg-[#282a2e] p-2 text-[#c7c8cc] hover:bg-[#3a3d42]" title="Cancelar">
+              <button onClick={() => onRemove(f.id)} className="rounded-full bg-[#404249] p-2 text-[#dbdee1] hover:bg-[#4e5058]" title="Cancelar">
                 <X className="size-4" />
               </button>
             </div>
@@ -235,7 +235,7 @@ function TodosTab({ friends, navigate, onAskRemove }: {
       <h2 className="mb-4 text-xs font-semibold uppercase text-muted-foreground">Todos os amigos — {friends.length}</h2>
       {friends.length === 0 ? (
         <div className="py-16 text-center">
-          <p className="text-sm text-[#808287]">Nenhum amigo ainda. Adicione alguém para começar!</p>
+          <p className="text-sm text-[#949ba4]">Nenhum amigo ainda. Adicione alguém para começar!</p>
         </div>
       ) : (
         <ul className="space-y-0.5">
@@ -245,16 +245,16 @@ function TodosTab({ friends, navigate, onAskRemove }: {
               onClick={() =>
                 f.profile && navigate({ to: "/perfil/$userId", params: { userId: f.profile.id } })
               }
-              className="group flex cursor-pointer items-center gap-3 rounded-lg px-3 py-2.5 transition-colors hover:bg-[#242629]"
+              className="group flex cursor-pointer items-center gap-3 rounded-lg px-3 py-2.5 transition-colors hover:bg-[#2b2d31]"
             >
               <div className="relative shrink-0">
                 <UserAvatar username={f.profile?.username ?? "?"} avatarUrl={f.profile?.avatar_url ?? null} className="size-10 text-base" />
-                <SmartStatusDot status={f.profile?.status} isOnline={f.profile?.is_online} lastActiveAt={f.profile?.last_active_at} ring="border-[#1a1b1e]" className="size-3.5 border-2" />
+                <SmartStatusDot status={f.profile?.status} isOnline={f.profile?.is_online} lastActiveAt={f.profile?.last_active_at} ring="border-[#313338]" className="size-3.5 border-2" />
               </div>
               <div className="min-w-0 flex-1">
-                <p className="text-sm font-medium text-[#c7c8cc] truncate">
+                <p className="text-sm font-medium text-[#dbdee1] truncate">
                   {f.profile?.display_name || f.profile?.username}
-                  <span className="ml-1 text-xs font-normal text-[#808287]">@{f.profile?.username}</span>
+                  <span className="ml-1 text-xs font-normal text-[#949ba4]">@{f.profile?.username}</span>
                 </p>
                 <p className="text-xs text-muted-foreground">
                   {f.profile?.status === "online" && "Online"}
@@ -270,15 +270,15 @@ function TodosTab({ friends, navigate, onAskRemove }: {
                     e.stopPropagation();
                     if (f.profile) navigate({ to: "/perfil/$userId", params: { userId: f.profile.id } });
                   }}
-                  className="rounded-full bg-[#282a2e] p-2 text-[#f9a620] hover:bg-[#282a2e] hover:text-[#f9a620]"
+                  className="rounded-full bg-[#404249] p-2 text-[#949ba4] hover:bg-[#404249] hover:text-[#5865F2]"
                   title="Ver perfil"
                 >
                   <UserRound className="size-4" />
                 </button>
-                <button onClick={(e) => { e.stopPropagation(); f.profile && navigate({ to: "/dm/$userId", params: { userId: f.profile.id } }); }} className="rounded-full bg-[#282a2e] p-2 text-[#f9a620] hover:bg-[#282a2e] hover:text-[#f9a620]" title="Mensagem">
+                <button onClick={(e) => { e.stopPropagation(); f.profile && navigate({ to: "/dm/$userId", params: { userId: f.profile.id } }); }} className="rounded-full bg-[#404249] p-2 text-[#949ba4] hover:bg-[#404249] hover:text-[#5865F2]" title="Mensagem">
                   <MessageSquare className="size-4" />
                 </button>
-                <button onClick={(e) => { e.stopPropagation(); onAskRemove({ id: f.id, name: f.profile?.display_name || f.profile?.username || "?" }); }} className="rounded-full bg-[#282a2e] p-2 text-[#f9a620] hover:bg-[#282a2e] hover:text-[#f9a620]" title="Remover">
+                <button onClick={(e) => { e.stopPropagation(); onAskRemove({ id: f.id, name: f.profile?.display_name || f.profile?.username || "?" }); }} className="rounded-full bg-[#404249] p-2 text-[#949ba4] hover:bg-[#404249] hover:text-[#5865F2]" title="Remover">
                   <MoreHorizontal className="size-4" />
                 </button>
               </div>

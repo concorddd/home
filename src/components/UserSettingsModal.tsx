@@ -42,6 +42,7 @@ export function UserSettingsModal({ onClose }: { onClose: () => void }) {
   // Banner upload
   const bannerRef = useRef<HTMLInputElement>(null);
   const [uploadingBanner, setUploadingBanner] = useState(false);
+  const [bannerColor, setBannerColor] = useState("#11a0f4");
   const ensureBuckets = useServerFn(ensureStorageBuckets);
 
   useEffect(() => {
@@ -49,6 +50,7 @@ export function UserSettingsModal({ onClose }: { onClose: () => void }) {
     setDisplayName(profile?.display_name ?? "");
     setStatus(profile?.status ?? "online");
     setBio(profile?.bio ?? "");
+    setBannerColor(profile?.banner_color ?? "#11a0f4");
   }, [profile]);
 
   async function handleBannerUpload(e: React.ChangeEvent<HTMLInputElement>) {
@@ -125,6 +127,27 @@ export function UserSettingsModal({ onClose }: { onClose: () => void }) {
       await refreshProfile();
     }
     setUploadingBanner(false);
+  }
+
+  async function handleBannerColor(color: string) {
+    if (!user) return;
+    const previous = bannerColor;
+    setBannerColor(color);
+    setError(null);
+    const { error: updErr } = await supabase
+      .from("profiles")
+      .update({ banner_color: color })
+      .eq("id", user.id);
+    if (updErr) {
+      setBannerColor(previous);
+      setError(
+        updErr.message.includes("banner_color")
+          ? "A coluna banner_color ainda não existe no banco. Aplique APLICAR_TUDO_NO_BANCO.sql (Lovable → More → Cloud → Database → SQL)."
+          : updErr.message,
+      );
+      return;
+    }
+    await refreshProfile();
   }
 
   async function handleSave(e: React.FormEvent) {
@@ -280,8 +303,12 @@ export function UserSettingsModal({ onClose }: { onClose: () => void }) {
 
             <div className="mt-6 overflow-hidden rounded-2xl bg-channels shadow-[0_16px_48px_-24px_rgba(0,0,0,0.9)]">
               <div
-                className="relative h-28 bg-gradient-to-r from-primary to-[#e2941a] cursor-pointer group"
-                style={profile?.banner_url ? { backgroundImage: `url(${profile.banner_url})`, backgroundSize: 'cover', backgroundPosition: 'center' } : undefined}
+                className="relative h-28 cursor-pointer group"
+                style={
+                  profile?.banner_url
+                    ? { backgroundImage: `url(${profile.banner_url})`, backgroundSize: 'cover', backgroundPosition: 'center' }
+                    : { backgroundColor: bannerColor }
+                }
                 onClick={() => bannerRef.current?.click()}
               >
                 <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 transition-opacity group-hover:opacity-100">
@@ -327,6 +354,38 @@ export function UserSettingsModal({ onClose }: { onClose: () => void }) {
                   onChange={handleAvatar}
                   className="hidden"
                 />
+              </div>
+
+              <div className="mt-6 rounded-xl bg-servers p-4">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
+                  Cor do banner
+                </p>
+                <div className="mt-3 flex flex-wrap items-center gap-2">
+                  {["#11a0f4", "#5865f2", "#23a55a", "#faa81a", "#f23f43", "#eb459e", "#9b59b6", "#1abc9c"].map((c) => (
+                    <button
+                      key={c}
+                      type="button"
+                      aria-label={`Usar cor ${c}`}
+                      onClick={() => void handleBannerColor(c)}
+                      className={`size-8 rounded-full border-2 transition-transform hover:scale-110 ${
+                        bannerColor.toLowerCase() === c ? "border-white" : "border-transparent"
+                      }`}
+                      style={{ backgroundColor: c }}
+                    />
+                  ))}
+                  <label className="ml-1 flex cursor-pointer items-center gap-2 rounded-lg bg-message-input px-3 py-1.5 text-xs text-muted-foreground">
+                    Personalizada
+                    <input
+                      type="color"
+                      value={bannerColor}
+                      onChange={(e) => void handleBannerColor(e.target.value)}
+                      className="size-6 cursor-pointer border-none bg-transparent p-0"
+                    />
+                  </label>
+                </div>
+                <p className="mt-2 text-xs text-muted-foreground">
+                  A cor aparece no seu banner de perfil (padrão #11a0f4).
+                </p>
               </div>
 
               <form onSubmit={handleSave} className="mt-6 space-y-4 rounded-xl bg-servers p-4">

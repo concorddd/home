@@ -21,7 +21,7 @@ async function loadProfile(userId: string): Promise<Profile | null> {
   const primary = await supabase
     .from("profiles")
     .select(
-      "id, username, display_name, avatar_url, banner_url, bio, status, is_online, last_active_at, created_at",
+      "id, username, display_name, avatar_url, banner_url, banner_color, bio, status, is_online, last_active_at, created_at",
     )
     .eq("id", userId)
     .maybeSingle();
@@ -147,7 +147,7 @@ return (
             >
               {/* Banner */}
               <div
-                className="relative h-36 w-full bg-[#1a1b1e]"
+                className="relative h-36 w-full bg-[#313338]"
                 style={
                   profile.banner_url
                     ? {
@@ -155,7 +155,7 @@ return (
                         backgroundSize: "cover",
                         backgroundPosition: "center",
                       }
-                    : { backgroundColor: "#f9a620" }
+                    : { backgroundColor: profile.banner_color || "#11a0f4" }
                 }
               />
 
@@ -166,7 +166,7 @@ return (
                     <UserAvatar
                       username={profile.username ?? "?"}
                       avatarUrl={profile.avatar_url ?? null}
-                      className="size-28 text-3xl shadow-lg ring-4 ring-[#f9a620]"
+                      className="size-28 text-3xl shadow-lg border-[6px] border-channels"
                     />
                     <SmartStatusDot
                       status={profile.status}

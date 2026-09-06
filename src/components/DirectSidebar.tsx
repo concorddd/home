@@ -53,7 +53,7 @@ export function DirectSidebar({ activeUserId }: { activeUserId?: string | null }
           data-tour="friends"
           className="relative mb-4 flex w-full items-center gap-2 rounded-lg px-2 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent/40 hover:text-foreground [&.active]:bg-accent [&.active]:text-accent-foreground"
         >
-          <Users className="size-4 text-[#f9a620]" />
+          <Users className="size-4 text-[#949ba4]" />
           <span className="flex-1">Amigos</span>
           <UnreadBadge count={incoming.length} />
         </Link>
@@ -88,7 +88,7 @@ export function DirectSidebar({ activeUserId }: { activeUserId?: string | null }
                       status={p.status}
                       isOnline={p.is_online}
                       lastActiveAt={p.last_active_at}
-                      ring="border-servers"
+                      ring="border-channels"
                       className="size-2.5"
                     />
                     <UnreadBadge count={unread} />
@@ -110,10 +110,10 @@ export function DirectSidebar({ activeUserId }: { activeUserId?: string | null }
         </ul>
       </div>
 
-      <div className="flex items-center gap-2 border-t border-border/60 bg-servers px-3 py-4">
+      <div className="flex h-[52px] items-center gap-2 border-t border-border/60 bg-user-panel px-3">
         <div className="relative">
           <UserAvatar username={profile?.username ?? "?"} avatarUrl={profile?.avatar_url ?? null} />
-          <StatusDot status={profile?.status} ring="border-servers" />
+          <StatusDot status={profile?.status} ring="border-user-panel" />
         </div>
         <div className="min-w-0 flex-1">
           <p className="truncate text-[13px] font-medium tracking-tight">
@@ -121,17 +121,17 @@ export function DirectSidebar({ activeUserId }: { activeUserId?: string | null }
           </p>
           <p className="truncate text-[11px] text-muted-foreground">@{profile?.username ?? "—"}</p>
         </div>
-        <button className="rounded p-1 text-[#f9a620] transition-colors hover:bg-accent/60 hover:text-[#f9a620]/80">
+        <button className="rounded p-1 text-[#949ba4] transition-colors hover:bg-accent/60 hover:text-[#5865F2]/80">
           <Mic className="size-4" />
         </button>
-        <button className="rounded p-1 text-[#f9a620] transition-colors hover:bg-accent/60 hover:text-[#f9a620]/80">
+        <button className="rounded p-1 text-[#949ba4] transition-colors hover:bg-accent/60 hover:text-[#5865F2]/80">
           <Headphones className="size-4" />
         </button>
         <button
           onClick={() => setSettingsOpen(true)}
           data-tour="settings"
           aria-label="Configurações do usuário"
-          className="rounded p-1 text-[#f9a620] transition-all duration-300 hover:rotate-45 hover:bg-accent/60 hover:text-[#f9a620]/80"
+          className="rounded p-1 text-[#949ba4] transition-all duration-300 hover:rotate-45 hover:bg-accent/60 hover:text-[#5865F2]/80"
         >
           <Settings className="size-4" />
         </button>

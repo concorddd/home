@@ -117,7 +117,7 @@ export function CreateServerModal({ onClose }: { onClose: () => void }) {
             {error && <p className="text-sm text-destructive">{error}</p>}
             <button
               disabled={busy}
-              className="flex w-full items-center justify-center gap-2 rounded-lg bg-[#3ba55d] px-4 py-2.5 text-sm font-semibold text-[#c7c8cc] transition-all hover:brightness-110 disabled:opacity-60"
+              className="flex w-full items-center justify-center gap-2 rounded-lg bg-[#3ba55d] px-4 py-2.5 text-sm font-semibold text-[#dbdee1] transition-all hover:brightness-110 disabled:opacity-60"
             >
               {busy && <Loader2 className="size-4 animate-spin" />} Entrar no servidor
             </button>

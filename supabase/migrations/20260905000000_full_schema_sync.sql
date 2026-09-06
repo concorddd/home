@@ -391,3 +391,8 @@ END $$;
 ALTER TABLE public.messages REPLICA IDENTITY FULL;
 ALTER TABLE public.direct_messages REPLICA IDENTITY FULL;
 ALTER TABLE public.profiles REPLICA IDENTITY FULL;
+-- ============================================================
+-- Cor dinâmica do banner do perfil (customização por usuário)
+-- O front injeta via inline style: banner_color || '#11a0f4'
+-- ============================================================
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS banner_color text;

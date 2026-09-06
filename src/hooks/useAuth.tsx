@@ -10,6 +10,7 @@ export type Profile = {
   display_name: string | null;
   avatar_url: string | null;
   banner_url?: string | null;
+  banner_color?: string | null;
   bio?: string | null;
   status: string;
   is_online?: boolean;
@@ -34,6 +35,7 @@ function normalizeProfile(raw: unknown): Profile {
     display_name: typeof p["display_name"] === "string" ? p["display_name"] : null,
     avatar_url: typeof p["avatar_url"] === "string" ? p["avatar_url"] : null,
     banner_url: typeof p["banner_url"] === "string" ? p["banner_url"] : undefined,
+    banner_color: typeof p["banner_color"] === "string" ? p["banner_color"] : null,
     bio: typeof p["bio"] === "string" ? p["bio"] : null,
     status: typeof p["status"] === "string" ? p["status"] : "offline",
     is_online: typeof p["is_online"] === "boolean" ? p["is_online"] : false,
@@ -58,7 +60,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Tentativa em cascata: o banco pode ainda não ter todas as colunas
     // (migrações pendentes). Cada tentativa remove colunas que podem faltar.
     const attempts = [
-      "id, username, display_name, avatar_url, banner_url, bio, status, is_online, last_active_at, created_at",
+      "id, username, display_name, avatar_url, banner_url, banner_color, bio, status, is_online, last_active_at, created_at",
       "id, username, display_name, avatar_url, banner_url, bio, status, created_at",
       "id, username, display_name, avatar_url, status, created_at",
     ];

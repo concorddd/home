@@ -8,6 +8,7 @@ export type FriendProfile = {
   username: string;
   display_name: string | null;
   avatar_url: string | null;
+  banner_color?: string | null;
   status: string;
   is_online?: boolean;
   last_active_at?: string;
@@ -45,7 +46,7 @@ export function useFriends() {
       // refaz sem elas para não quebrar a lista de amigos.
       const primary = await supabase
         .from("profiles")
-        .select("id, username, display_name, avatar_url, status, is_online, last_active_at")
+        .select("id, username, display_name, avatar_url, banner_color, status, is_online, last_active_at")
         .in("id", otherIds);
       let profs = (primary.data as unknown as FriendProfile[]) ?? null;
       if (primary.error || profs === null) {

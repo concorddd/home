@@ -87,8 +87,8 @@ export function CallOverlay() {
 
   if (minimized && inCall) {
     return (
-      <div className="fixed bottom-4 right-4 z-50 w-72 overflow-hidden rounded-xl border border-[#242629] bg-[#141517] shadow-2xl">
-        <div className="relative aspect-video bg-[#242629]">
+      <div className="fixed bottom-4 right-4 z-50 w-72 overflow-hidden rounded-xl border border-[#2b2d31] bg-[#1e1f22] shadow-2xl">
+        <div className="relative aspect-video bg-[#2b2d31]">
           <video
             ref={remoteVideoRef}
             autoPlay
@@ -111,7 +111,7 @@ export function CallOverlay() {
             onClick={() => setMinimized(false)}
             title="Expandir chamada"
             aria-label="Expandir chamada"
-            className="flex size-8 items-center justify-center rounded-lg bg-[#282a2e] transition-colors hover:bg-[#3a3d42]"
+            className="flex size-8 items-center justify-center rounded-lg bg-[#404249] transition-colors hover:bg-[#4e5058]"
           >
             <Maximize2 className="size-4" />
           </button>
@@ -129,7 +129,7 @@ export function CallOverlay() {
   }
 
   return (
-    <div className="fixed inset-0 z-[100] flex h-[100dvh] flex-col bg-[#141517] sm:bg-[#1a1b1e]/98 sm:backdrop-blur-sm">
+    <div className="fixed inset-0 z-[100] flex h-[100dvh] flex-col bg-[#1e1f22] sm:bg-[#313338]/98 sm:backdrop-blur-sm">
       <div className="relative min-h-0 flex-1 p-0 sm:p-6">
         {inCall && (
           <button
@@ -148,7 +148,7 @@ export function CallOverlay() {
             <p className="max-w-sm text-sm text-muted-foreground">{error}</p>
             <button
               onClick={dismissError}
-              className="rounded-lg bg-[#282a2e] px-4 py-2 text-sm font-medium transition-colors hover:bg-[#3a3d42]"
+              className="rounded-lg bg-[#404249] px-4 py-2 text-sm font-medium transition-colors hover:bg-[#4e5058]"
             >
               Fechar
             </button>
@@ -260,7 +260,7 @@ export function CallOverlay() {
                       setRemoteVol(v);
                       if (v > 0 && remoteMuted) setRemoteMuted(false);
                     }}
-                    className="w-20 cursor-pointer accent-[#f9a620]"
+                    className="w-20 cursor-pointer accent-[#5865f2]"
                     title="Volume"
                     aria-label="Volume da chamada"
                   />
@@ -307,7 +307,7 @@ export function CallOverlay() {
       </div>
 
       {status !== "incoming" && status !== "error" && status !== "calling" && status !== "ended" && (
-        <div className="shrink-0 border-t border-black/30 bg-[#242629] px-6 py-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
+        <div className="shrink-0 border-t border-black/30 bg-[#2b2d31] px-6 py-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
           <div className="relative flex items-center justify-center gap-4 sm:gap-3">
             <Dock
               title={micOn ? "Desativar Microfone" : "Ativar Microfone"}
@@ -378,9 +378,9 @@ function QualityMenu({
     <div
       ref={ref}
       role="menu"
-      className="animate-fade-up absolute bottom-[calc(100%+0.75rem)] left-1/2 z-50 w-72 -translate-x-1/2 overflow-hidden rounded-xl border border-[#242629] bg-[#141517] shadow-2xl"
+      className="animate-fade-up absolute bottom-[calc(100%+0.75rem)] left-1/2 z-50 w-72 -translate-x-1/2 overflow-hidden rounded-xl border border-[#2b2d31] bg-[#1e1f22] shadow-2xl"
     >
-      <p className="border-b border-[#242629] px-4 py-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+      <p className="border-b border-[#2b2d31] px-4 py-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
         Escolha a qualidade da transmissão
       </p>
       <ul className="p-1">
@@ -417,7 +417,7 @@ function Tile({
   children: React.ReactNode;
 }) {
   return (
-    <div className={`relative overflow-hidden bg-[#242629] ring-1 ring-black/30 ${className}`}>
+    <div className={`relative overflow-hidden bg-[#2b2d31] ring-1 ring-black/30 ${className}`}>
       <div className={visible ? "size-full" : "hidden"}>{children}</div>
       {!visible && (
         <div className="flex size-full items-center justify-center">
@@ -448,7 +448,7 @@ function Dock({
       aria-label={title}
       onClick={onClick}
       className={`flex size-16 items-center justify-center rounded-full transition-colors sm:size-11 ${
-        active ? "bg-[#f9a620] hover:bg-[#e2941a]" : "bg-[#282a2e] hover:bg-[#3a3d42]"
+        active ? "bg-[#5865F2] hover:bg-[#4752c4]" : "bg-[#404249] hover:bg-[#4e5058]"
       }`}
     >
       {children}
