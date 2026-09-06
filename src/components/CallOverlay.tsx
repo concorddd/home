@@ -44,11 +44,14 @@ export function CallOverlay() {
     startScreenShare,
     stopScreenShare,
     dismissError,
+    selfDeafen,
   } = useCalls();
 
   const [menuOpen, setMenuOpen] = useState(false);
   const [remoteVol, setRemoteVol] = useState(1);
   const [remoteMuted, setRemoteMuted] = useState(false);
+  // Surdo global: silencia TUDO que você escuta, independente do volume.
+  const outputMuted = remoteMuted || selfDeafen;
   const [remoteFs, setRemoteFs] = useState(false);
   const { profile } = useAuth();
   const inCall = status === "active" || status === "connecting";
@@ -58,10 +61,10 @@ export function CallOverlay() {
     if (remoteVideoRef.current) remoteVideoRef.current.srcObject = remoteStreamRef.current;
     if (localVideoRef.current) localVideoRef.current.srcObject = localStreamRef.current;
     if (remoteVideoRef.current) {
-      remoteVideoRef.current.volume = remoteVol;
-      remoteVideoRef.current.muted = remoteMuted;
+      remoteVideoRef.current.volume = outputMuted ? 0 : remoteVol;
+      remoteVideoRef.current.muted = outputMuted;
     }
-  }, [minimized, status, localStreamRef, remoteStreamRef, localVideoRef, remoteVideoRef, remoteVol, remoteMuted]);
+  }, [minimized, status, localStreamRef, remoteStreamRef, localVideoRef, remoteVideoRef, remoteVol, outputMuted]);
 
   // alterna fullscreen da transmissão/vídeo remoto
   const toggleRemoteFullscreen = () => {
@@ -242,11 +245,11 @@ export function CallOverlay() {
                       e.stopPropagation();
                       setRemoteMuted((m) => !m);
                     }}
-                    title={remoteMuted ? "Ativar som" : "Silenciar"}
-                    aria-label={remoteMuted ? "Ativar som" : "Silenciar"}
+                    title={outputMuted ? "Ativar som" : "Silenciar"}
+                    aria-label={outputMuted ? "Ativar som" : "Silenciar"}
                     className="rounded-lg p-1.5 transition-colors hover:bg-white/15"
                   >
-                    {remoteMuted ? <VolumeX className="size-4" /> : <Volume2 className="size-4" />}
+                    {outputMuted ? <VolumeX className="size-4" /> : <Volume2 className="size-4" />}
                   </button>
                   <input
                     type="range"

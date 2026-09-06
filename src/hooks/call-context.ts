@@ -87,6 +87,12 @@ export type CallContextValue = {
   decline: () => void;
   hangUp: () => void;
   toggleMic: () => void;
+  /** Microfone silenciado globalmente (painel do usuário ou chamada). */
+  selfMute: boolean;
+  /** Surdo: não escuta ninguém e o microfone também fica mudo. */
+  selfDeafen: boolean;
+  toggleSelfMute: () => void;
+  toggleSelfDeafen: () => void;
   toggleCam: () => Promise<void>;
   startScreenShare: (quality: ScreenQuality) => Promise<void>;
   stopScreenShare: () => Promise<void>;

@@ -89,11 +89,11 @@ export function ProfileModal({ profile, onClose }: { profile: Profile; onClose: 
       role="dialog"
       aria-modal="true"
       aria-label={`Perfil de ${name}`}
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-[2px]"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4"
       onClick={onClose}
     >
       <div
-        className="relative flex max-h-[85vh] min-h-[500px] w-full max-w-[800px] overflow-hidden rounded-xl bg-[#313338] shadow-[0_24px_80px_-16px_rgba(0,0,0,0.9)]"
+        className="relative flex max-h-[85vh] min-h-[500px] w-full max-w-[800px] overflow-hidden rounded-xl bg-[#313338]"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Fechar (X) — canto superior direito */}

@@ -74,13 +74,13 @@ export function ServerRail({
           onClick={() => navigate({ to: "/amigos" })}
           title="Mensagens diretas"
           aria-label="Mensagens diretas"
-          className={`flex size-12 shrink-0 items-center justify-center transition-all duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] ${
+          className={`flex size-10 shrink-0 items-center justify-center transition-all duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] ${
             homeActive
-              ? "rounded-2xl bg-primary text-primary-foreground shadow-[0_8px_24px_-8px_var(--primary)]"
-              : "rounded-full bg-channels text-foreground hover:rounded-2xl hover:bg-primary hover:text-primary-foreground"
+              ? "rounded-xl bg-primary text-primary-foreground shadow-[0_8px_24px_-8px_var(--primary)]"
+              : "rounded-lg bg-channels text-foreground hover:rounded-xl hover:bg-primary hover:text-primary-foreground"
           }`}
         >
-          <MessagesSquare className="size-6" />
+          <MessagesSquare className="size-5" />
         </button>
         <span className="h-px w-8 bg-border/70" />
 
@@ -89,10 +89,10 @@ export function ServerRail({
           <button
             onClick={() => void openServer(s.id)}
             title={s.name}
-            className={`flex size-12 shrink-0 items-center justify-center overflow-hidden text-[13px] font-semibold tracking-tight transition-all duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] ${
+            className={`flex size-10 shrink-0 items-center justify-center overflow-hidden text-[13px] font-semibold tracking-tight transition-all duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] ${
               s.id === activeServerId
-                ? "rounded-2xl bg-primary text-primary-foreground shadow-[0_8px_24px_-8px_var(--primary)]"
-                : "rounded-full bg-channels text-foreground hover:rounded-2xl hover:bg-primary hover:text-primary-foreground"
+                ? "rounded-xl bg-primary text-primary-foreground shadow-[0_8px_24px_-8px_var(--primary)]"
+                : "rounded-lg bg-channels text-foreground hover:rounded-xl hover:bg-primary hover:text-primary-foreground"
             }`}
           >
             {s.icon_url ? (
@@ -110,9 +110,9 @@ export function ServerRail({
           data-tour="add-server"
           aria-label="Adicionar um servidor"
           title="Adicionar um servidor"
-          className="flex size-12 shrink-0 items-center justify-center rounded-full bg-channels text-[#3ba55d] transition-all duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] hover:rounded-2xl hover:bg-[#3ba55d] hover:text-white"
+          className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-channels text-[#3ba55d] transition-all duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] hover:rounded-xl hover:bg-[#3ba55d] hover:text-white"
         >
-          <Plus className="size-6" />
+          <Plus className="size-5" />
         </button>
       </nav>
 

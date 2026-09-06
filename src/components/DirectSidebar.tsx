@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "@tanstack/react-router";
-import { Headphones, Mic, Settings, Users } from "lucide-react";
+import { Headphones, Mic, MicOff, Settings, Users } from "lucide-react";
 import { UserAvatar } from "@/components/UserAvatar";
 import { SmartStatusDot, StatusDot } from "@/components/StatusDot";
 import { UserSettingsModal } from "@/components/UserSettingsModal";
@@ -9,9 +9,11 @@ import { useAuth } from "@/hooks/useAuth";
 import { useFriends } from "@/hooks/useFriends";
 import { useNotifications } from "@/hooks/useNotifications";
 import { useDmInbox, UnreadBadge } from "@/hooks/useInbox";
+import { useCalls } from "@/hooks/call-context";
 
 export function DirectSidebar({ activeUserId }: { activeUserId?: string | null }) {
   const { profile, user } = useAuth();
+  const { selfMute, selfDeafen, toggleSelfMute, toggleSelfDeafen } = useCalls();
   const { friends, incoming } = useFriends();
   const { playNotificationSound, notifyFriendRequest } = useNotifications(user?.id);
   const { summaries } = useDmInbox();
@@ -110,31 +112,58 @@ export function DirectSidebar({ activeUserId }: { activeUserId?: string | null }
         </ul>
       </div>
 
-      <div className="flex h-[52px] items-center gap-2 border-t border-border/60 bg-user-panel px-3">
-        <div className="relative">
-          <UserAvatar username={profile?.username ?? "?"} avatarUrl={profile?.avatar_url ?? null} />
-          <StatusDot status={profile?.status} ring="border-user-panel" />
+      {/* Painel do usuário local — barra flutuante estilo composer */}
+      <div className="px-2 pb-2 pt-1">
+        <div className="flex h-[52px] items-center gap-2 rounded-lg bg-user-panel px-2 shadow-[0_8px_24px_-8px_rgba(0,0,0,0.6)] ring-1 ring-white/[0.04]">
+          <div className="relative shrink-0">
+            <UserAvatar username={profile?.username ?? "?"} avatarUrl={profile?.avatar_url ?? null} />
+            <StatusDot status={profile?.status} ring="border-user-panel" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-[13px] font-medium tracking-tight">
+              {profile?.display_name || profile?.username || "—"}
+            </p>
+            <p className="truncate text-[11px] text-muted-foreground">@{profile?.username ?? "—"}</p>
+          </div>
+          <button
+            onClick={toggleSelfMute}
+            title={selfMute || selfDeafen ? "Ativar microfone" : "Silenciar microfone"}
+            aria-label={selfMute || selfDeafen ? "Ativar microfone" : "Silenciar microfone"}
+            className={`relative flex size-8 shrink-0 items-center justify-center rounded transition-colors ${
+              selfMute || selfDeafen
+                ? "text-[#f0553c] hover:bg-[#f0553c]/15"
+                : "text-[#949ba4] hover:bg-accent/60 hover:text-[#dbdee1]"
+            }`}
+          >
+            {selfMute || selfDeafen ? <MicOff className="size-4" /> : <Mic className="size-4" />}
+          </button>
+          <button
+            onClick={toggleSelfDeafen}
+            title={selfDeafen ? "Desativar mute total" : "Mute total (não escutar e não falar)"}
+            aria-label={selfDeafen ? "Desativar mute total" : "Mute total"}
+            className={`relative flex size-8 shrink-0 items-center justify-center rounded transition-colors ${
+              selfDeafen
+                ? "text-[#f0553c] hover:bg-[#f0553c]/15"
+                : "text-[#949ba4] hover:bg-accent/60 hover:text-[#dbdee1]"
+            }`}
+          >
+            <Headphones className="size-4" />
+            {selfDeafen && (
+              <span
+                aria-hidden
+                className="absolute h-[1.5px] w-[22px] -rotate-[40deg] rounded bg-current"
+              />
+            )}
+          </button>
+          <button
+            onClick={() => setSettingsOpen(true)}
+            data-tour="settings"
+            aria-label="Configurações do usuário"
+            className="flex size-8 shrink-0 items-center justify-center rounded text-[#949ba4] transition-all duration-300 hover:rotate-45 hover:bg-accent/60 hover:text-[#dbdee1]"
+          >
+            <Settings className="size-4" />
+          </button>
         </div>
-        <div className="min-w-0 flex-1">
-          <p className="truncate text-[13px] font-medium tracking-tight">
-            {profile?.display_name || profile?.username || "—"}
-          </p>
-          <p className="truncate text-[11px] text-muted-foreground">@{profile?.username ?? "—"}</p>
-        </div>
-        <button className="rounded p-1 text-[#949ba4] transition-colors hover:bg-accent/60 hover:text-[#5865F2]/80">
-          <Mic className="size-4" />
-        </button>
-        <button className="rounded p-1 text-[#949ba4] transition-colors hover:bg-accent/60 hover:text-[#5865F2]/80">
-          <Headphones className="size-4" />
-        </button>
-        <button
-          onClick={() => setSettingsOpen(true)}
-          data-tour="settings"
-          aria-label="Configurações do usuário"
-          className="rounded p-1 text-[#949ba4] transition-all duration-300 hover:rotate-45 hover:bg-accent/60 hover:text-[#5865F2]/80"
-        >
-          <Settings className="size-4" />
-        </button>
       </div>
 
       {settingsOpen && <UserSettingsModal onClose={() => setSettingsOpen(false)} />}

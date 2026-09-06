@@ -1,4 +1,4 @@
-import { MoreHorizontal, StickyNote, Trash, UserPlus } from "lucide-react";
+import { MoreHorizontal, StickyNote, UserCheck, UserMinus, UserPlus } from "lucide-react";
 import { useAuth, type Profile } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { SmartStatusDot } from "@/components/StatusDot";
@@ -17,6 +17,9 @@ export function ProfilePanel({ profile, onClose }: Props) {
   const [removing, setRemoving] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
+  const [friendState, setFriendState] = useState<
+    "loading" | "none" | "pending" | "friends"
+  >("loading");
 
   const name = profile.display_name || profile.username || "Usuario";
   const isSelf = profile.id === user?.id;
@@ -29,6 +32,49 @@ export function ProfilePanel({ profile, onClose }: Props) {
     window.addEventListener("keydown", handleKey);
     return () => window.removeEventListener("keydown", handleKey);
   }, [onClose]);
+
+  // Estado de amizade com esta pessoa (controla o botão +/− do banner).
+  useEffect(() => {
+    if (!user || isSelf) return;
+    let alive = true;
+    void (async () => {
+      const { data } = await supabase
+        .from("friendships")
+        .select("status")
+        .or(
+          `and(requester_id.eq.${user.id},addressee_id.eq.${profile.id}),and(requester_id.eq.${profile.id},addressee_id.eq.${user.id})`,
+        )
+        .in("status", ["accepted", "pending"])
+        .limit(1)
+        .maybeSingle();
+      if (!alive) return;
+      const st = (data as { status: string } | null)?.status;
+      setFriendState(st === "accepted" ? "friends" : st === "pending" ? "pending" : "none");
+    })();
+    return () => {
+      alive = false;
+    };
+  }, [user, profile.id, isSelf]);
+
+  async function handleAddFriend() {
+    if (!user) return;
+    setFriendState("pending");
+    const pair = `and(requester_id.eq.${user.id},addressee_id.eq.${profile.id}),and(requester_id.eq.${profile.id},addressee_id.eq.${user.id})`;
+    const { error } = await supabase
+      .from("friendships")
+      .insert({ requester_id: user.id, addressee_id: profile.id, status: "pending" });
+    if (error) {
+      // Pedido pode já existir: consulta o estado real antes de exibir.
+      const { data } = await supabase
+        .from("friendships")
+        .select("status")
+        .or(pair)
+        .limit(1)
+        .maybeSingle();
+      const st = (data as { status: string } | null)?.status;
+      setFriendState(st === "accepted" ? "friends" : st === "pending" ? "pending" : "none");
+    }
+  }
 
   async function handleRemoveFriend() {
     if (!user || !showConfirm) return;
@@ -57,16 +103,38 @@ export function ProfilePanel({ profile, onClose }: Props) {
           {!isSelf && (
             <div className="absolute top-2 right-2 flex gap-1.5">
               <button
-                title="Adicionar amigo"
-                aria-label="Adicionar amigo"
-                className="flex size-8 items-center justify-center rounded-full bg-black/40 text-white/80 transition-colors hover:bg-black/60 hover:text-white"
+                title={
+                  friendState === "friends"
+                    ? "Remover amigo"
+                    : friendState === "pending"
+                      ? "Pedido de amizade pendente"
+                      : "Adicionar amigo"
+                }
+                aria-label={
+                  friendState === "friends"
+                    ? "Remover amigo"
+                    : friendState === "pending"
+                      ? "Pedido de amizade pendente"
+                      : "Adicionar amigo"
+                }
+                disabled={friendState === "loading" || friendState === "pending"}
+                onClick={() =>
+                  friendState === "friends" ? setShowConfirm(true) : void handleAddFriend()
+                }
+                className="flex size-8 items-center justify-center rounded-full bg-black/40 text-white/80 transition-colors hover:bg-black/60 hover:text-white disabled:cursor-not-allowed disabled:opacity-60"
               >
-                <UserPlus className="size-4" />
+                {friendState === "friends" ? (
+                  <UserMinus className="size-4" />
+                ) : friendState === "pending" ? (
+                  <UserCheck className="size-4" />
+                ) : (
+                  <UserPlus className="size-4" />
+                )}
               </button>
               <button
-                title="Mais opções"
-                aria-label="Mais opções"
-                onClick={() => setShowConfirm(true)}
+                title="Ver perfil completo"
+                aria-label="Ver perfil completo"
+                onClick={() => setModalOpen(true)}
                 className="flex size-8 items-center justify-center rounded-full bg-black/40 text-white/80 transition-colors hover:bg-black/60 hover:text-white"
               >
                 <MoreHorizontal className="size-4" />
@@ -77,20 +145,8 @@ export function ProfilePanel({ profile, onClose }: Props) {
       </div>
 
       <div className="flex flex-1 flex-col overflow-y-auto">
-        {/* Cabeçalho do painel */}
-        <div className="flex items-center justify-between px-5 pt-4">
-          <h3 className="text-sm font-semibold text-[#dbdee1]">Perfil</h3>
-          <button
-            onClick={onClose}
-            className="flex size-7 items-center justify-center rounded-md text-[#949ba4] transition-colors hover:bg-[#404249] hover:text-[#dbdee1]"
-            title="Fechar (Esc)"
-          >
-            ✕
-          </button>
-        </div>
-
-        {/* Avatar 80x80 alinhado à esquerda, sobre a divisória banner/painel */}
-        <div className="relative -mt-10 px-4">
+        {/* Avatar 80x80 alinhado à esquerda, colidindo com o banner (por cima) */}
+        <div className="relative -mt-[95px] px-4">
           <div className="relative w-fit">
             {profile.avatar_url ? (
               <img
@@ -118,7 +174,7 @@ export function ProfilePanel({ profile, onClose }: Props) {
         </div>
 
         {/* Identidade */}
-        <div className="px-4 pt-3">
+        <div className="px-4 pt-4">
           <div className="flex items-center gap-1.5">
             <h2 className="truncate text-lg font-bold text-[#dbdee1]">{name}</h2>
             <StickyNote className="size-4 shrink-0 text-[#949ba4]" aria-label="Nota" />
@@ -160,46 +216,37 @@ export function ProfilePanel({ profile, onClose }: Props) {
           >
             Ver Perfil Completo
           </button>
-          {!isSelf && (
-            <div className="relative mt-1">
-              <button
-                onClick={() => setShowConfirm(true)}
-                className="flex w-full items-center gap-2 rounded-lg p-2 text-sm text-[#f0553c] hover:bg-[#404249]"
-              >
-                <Trash className="size-4" /> Remover amigo
-              </button>
-              {showConfirm && (
-                <div
-                  className="fixed inset-0 z-50 flex items-center justify-center bg-black/60"
-                  onClick={() => setShowConfirm(false)}
-                >
-                  <div className="max-w-sm rounded-lg bg-panel-perfil p-5 shadow-xl" onClick={(e) => e.stopPropagation()}>
-                    <h4 className="mb-2 font-semibold text-[#dbdee1]">Remover amigo?</h4>
-                    <p className="mb-4 text-sm text-[#949ba4]">Voce sera removido dos amigos de {name}.</p>
-                    <div className="flex justify-end gap-2">
-                      <button
-                        onClick={() => setShowConfirm(false)}
-                        disabled={removing}
-                        className="rounded bg-[#404249] px-4 py-2 text-sm text-[#dbdee1] hover:bg-[#313338]"
-                      >
-                        Cancelar
-                      </button>
-                      <button
-                        onClick={handleRemoveFriend}
-                        disabled={removing}
-                        className="rounded bg-[#da373c] px-4 py-2 text-sm text-white"
-                      >
-                        {removing ? "Removendo..." : "Confirmar"}
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
         </div>
       </div>
       </aside>
+
+      {showConfirm && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60"
+          onClick={() => setShowConfirm(false)}
+        >
+          <div className="max-w-sm rounded-lg bg-panel-perfil p-5 shadow-xl" onClick={(e) => e.stopPropagation()}>
+            <h4 className="mb-2 font-semibold text-[#dbdee1]">Remover amigo?</h4>
+            <p className="mb-4 text-sm text-[#949ba4]">Vocês deixarão de ser amigos no Concord.</p>
+            <div className="flex justify-end gap-2">
+              <button
+                onClick={() => setShowConfirm(false)}
+                disabled={removing}
+                className="rounded bg-[#404249] px-4 py-2 text-sm text-[#dbdee1] hover:bg-[#313338]"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleRemoveFriend}
+                disabled={removing}
+                className="rounded bg-[#da373c] px-4 py-2 text-sm text-white"
+              >
+                {removing ? "Removendo..." : "Remover"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {modalOpen && <ProfileModal profile={profile} onClose={() => setModalOpen(false)} />}
     </>

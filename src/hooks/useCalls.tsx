@@ -26,6 +26,24 @@ export function CallProvider({ children }: { children: ReactNode }) {
   const [error, setError] = useState<string | null>(null);
   const [micOn, setMicOn] = useState(true);
   const [camOn, setCamOn] = useState(false);
+  // ---- mute/surdo globais (painel do usuário e chamadas compartilham) ----
+  const [selfDeafen, setSelfDeafen] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem("concord:selfDeafen") === "1";
+    } catch {
+      return false;
+    }
+  });
+  const [selfMute, setSelfMute] = useState<boolean>(() => {
+    try {
+      return (
+        localStorage.getItem("concord:selfMute") === "1" ||
+        localStorage.getItem("concord:selfDeafen") === "1"
+      );
+    } catch {
+      return false;
+    }
+  });
   const [withVideo, setWithVideo] = useState(false);
   const [remoteVideoOn, setRemoteVideoOn] = useState(false);
   const [minimized, setMinimized] = useState(false);
@@ -44,6 +62,48 @@ export function CallProvider({ children }: { children: ReactNode }) {
   const localVideoRef = useRef<HTMLVideoElement | null>(null);
   const remoteVideoRef = useRef<HTMLVideoElement | null>(null);
   const activeSinceRef = useRef<number | null>(null);
+  const selfMuteRef = useRef(selfMute);
+  const selfDeafenRef = useRef(selfDeafen);
+  const deafenSyncedRef = useRef(false);
+
+  // ---- persistência das preferências de áudio ----
+  useEffect(() => {
+    selfMuteRef.current = selfMute;
+    try {
+      if (selfMute) localStorage.setItem("concord:selfMute", "1");
+      else localStorage.removeItem("concord:selfMute");
+    } catch {
+      /* ignore */
+    }
+  }, [selfMute]);
+
+  useEffect(() => {
+    selfDeafenRef.current = selfDeafen;
+    try {
+      if (selfDeafen) localStorage.setItem("concord:selfDeafen", "1");
+      else localStorage.removeItem("concord:selfDeafen");
+    } catch {
+      /* ignore */
+    }
+  }, [selfDeafen]);
+
+  // Habilita/desabilita o microfone ao vivo (na chamada atual e nas próximas).
+  useEffect(() => {
+    const enabled = !selfMute && !selfDeafen;
+    localStreamRef.current?.getAudioTracks().forEach((t) => {
+      t.enabled = enabled;
+    });
+    setMicOn(enabled);
+  }, [selfMute, selfDeafen, status]);
+
+  // Surdo silencia também o microfone; dessurde restaura os dois.
+  useEffect(() => {
+    if (!deafenSyncedRef.current) {
+      deafenSyncedRef.current = true;
+      return;
+    }
+    setSelfMute(selfDeafen);
+  }, [selfDeafen]);
 
   /** Registra o resultado da chamada como mensagem especial na DM. */
   const logCall = useCallback(
@@ -207,7 +267,11 @@ export function CallProvider({ children }: { children: ReactNode }) {
       video: video ? { width: 1280, height: 720 } : false,
     });
     localStreamRef.current = stream;
-    setMicOn(true);
+    const micEnabled = !selfMuteRef.current && !selfDeafenRef.current;
+    stream.getAudioTracks().forEach((t) => {
+      t.enabled = micEnabled;
+    });
+    setMicOn(micEnabled);
     setCamOn(video);
     window.setTimeout(() => {
       if (localVideoRef.current) localVideoRef.current.srcObject = stream;
@@ -432,12 +496,17 @@ export function CallProvider({ children }: { children: ReactNode }) {
     endLocal();
   }, [endLocal, selfId, signal]);
 
-  const toggleMic = useCallback(() => {
-    const track = localStreamRef.current?.getAudioTracks()[0];
-    if (!track) return;
-    track.enabled = !track.enabled;
-    setMicOn(track.enabled);
+  // O botão do microfone (na chamada) e o do painel de usuário compartilham
+  // o mesmo estado global: mutar em um lugar muta em todos.
+  const toggleSelfMute = useCallback(() => {
+    setSelfMute((m) => !m);
   }, []);
+
+  const toggleSelfDeafen = useCallback(() => {
+    setSelfDeafen((d) => !d);
+  }, []);
+
+  const toggleMic = toggleSelfMute;
 
   const toggleCam = useCallback(async () => {
     const stream = localStreamRef.current;
@@ -549,6 +618,10 @@ export function CallProvider({ children }: { children: ReactNode }) {
     hangUp,
     toggleMic,
     toggleCam,
+    selfMute,
+    selfDeafen,
+    toggleSelfMute,
+    toggleSelfDeafen,
     startScreenShare,
     stopScreenShare,
     dismissError,

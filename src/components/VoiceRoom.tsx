@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useVoicePresence } from "@/hooks/useVoicePresence";
+import { useCalls } from "@/hooks/call-context";
 import { useAuth } from "@/hooks/useAuth";
 import { UserAvatar } from "@/components/UserAvatar";
 
@@ -56,15 +57,16 @@ function formatClock(totalSeconds: number) {
 }
 
 /** Toca o áudio de um participante remoto. */
-function PeerAudio({ stream }: { stream: MediaStream | null }) {
+function PeerAudio({ stream, muted }: { stream: MediaStream | null; muted: boolean }) {
   const ref = useRef<HTMLAudioElement | null>(null);
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
     if (el.srcObject !== stream) el.srcObject = stream;
+    el.muted = muted;
     void el.play().catch(() => {});
-  }, [stream]);
-  return <audio ref={ref} autoPlay playsInline className="hidden" />;
+  }, [stream, muted]);
+  return <audio ref={ref} autoPlay playsInline muted={muted} className="hidden" />;
 }
 
 function ScreenSharePreview({ stream, onStop }: { stream: MediaStream; onStop: () => void }) {
@@ -132,6 +134,7 @@ export function VoiceRoom({
   const [error, setError] = useState<string | null>(null);
   const [peers, setPeers] = useState<RemotePeer[]>([]);
   const [micOn, setMicOn] = useState(true);
+  const { selfMute, selfDeafen, toggleSelfMute } = useCalls();
   const [camOn, setCamOn] = useState(startVideo);
   const [sharing, setSharing] = useState(false);
   const [screenStream, setScreenStream] = useState<MediaStream | null>(null);
@@ -319,7 +322,11 @@ export function VoiceRoom({
         }
         localStreamRef.current = stream;
         camTrackRef.current = stream.getVideoTracks()[0] ?? null;
-        setMicOn(true);
+        const micEnabled = !selfMute && !selfDeafen;
+        stream.getAudioTracks().forEach((t) => {
+          t.enabled = micEnabled;
+        });
+        setMicOn(micEnabled);
         setCamOn(startVideo);
 
         const ch = supabase.channel(`voice:${channelId}`, {
@@ -440,15 +447,21 @@ export function VoiceRoom({
   }, [selfId]);
 
   // ---- controles ----
+  // O botão da sala usa o MESMO estado global do painel de usuário/chamadas.
   const toggleMic = useCallback(() => {
-    const stream = localStreamRef.current;
-    if (!stream) return;
-    const track = stream.getAudioTracks()[0];
-    if (!track) return;
-    track.enabled = !track.enabled;
-    setMicOn(track.enabled);
-    updatePresence({ mic_on: track.enabled });
-  }, [updatePresence]);
+    toggleSelfMute();
+  }, [toggleSelfMute]);
+
+  // Reflete mute/surdo global na sala: trilha + presença + áudio dos pares.
+  useEffect(() => {
+    const enabled = !selfMute && !selfDeafen;
+    const track = localStreamRef.current?.getAudioTracks()[0];
+    if (track) {
+      track.enabled = enabled;
+      setMicOn(enabled);
+      updatePresence({ mic_on: enabled });
+    }
+  }, [selfMute, selfDeafen, updatePresence]);
 
   const toggleCam = useCallback(async () => {
     const stream = localStreamRef.current;
@@ -691,7 +704,7 @@ export function VoiceRoom({
                   <MicOff className="h-3 w-3" />
                 </div>
               )}
-              <PeerAudio stream={peer.stream} />
+              <PeerAudio stream={peer.stream} muted={selfDeafen} />
             </div>
           ))}
         </div>
