@@ -1,5 +1,5 @@
 import { createFileRoute, useParams } from "@tanstack/react-router";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, Fragment } from "react";
 import { AtSign, Loader2, Phone, Video as VideoIcon, Users, Trash2, Pin } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -14,6 +14,7 @@ import { ChatInput } from "@/components/ChatInput";
 import { MessageAttachment } from "@/components/MessageAttachment";
 import { MessageHoverMenu } from "@/components/MessageActions";
 import { MessageContextMenu } from "@/components/MessageContextMenu";
+import { DateSeparator } from "@/components/DateSeparator";
 import { SideDrawer, MenuButton } from "@/components/MobileShell";
 import { ProfilePanel, type Peer } from "@/components/ProfilePanel";
 import { AudioPlayer } from "@/components/AudioPlayer";
@@ -61,6 +62,12 @@ function DirectMessagePage() {
   function handleMessageContextMenu(e: React.MouseEvent, messageId: string) {
     e.preventDefault();
     setContextMenu({ x: e.clientX, y: e.clientY, messageId });
+  }
+
+  // Extrai apenas dia/mês/ano para comparar entre mensagens consecutivas.
+  function dateKey(iso: string): string {
+    const d = new Date(iso);
+    return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
   }
 
   useEffect(() => {
@@ -279,70 +286,73 @@ return (
               Este e o comeco da sua conversa com {peerName}.
             </p>
           ) : (
-            messages.map((m) => {
+            messages.map((m, i) => {
               const mine = m.sender_id === user?.id;
+              const showSeparator = i === 0 || dateKey(m.created_at) !== dateKey(messages[i - 1]!.created_at);
               return (
-                <article
-                  key={m.id}
-                  onContextMenu={(e) => handleMessageContextMenu(e, m.id)}
-                  className="animate-fade-up group -mx-2 flex gap-3 rounded-xl px-2 py-1 transition-colors hover:bg-accent/25"
-                >
-                  <UserAvatar
-                    username={mine ? (profile?.username ?? "?") : (peer?.username ?? "?")}
-                    avatarUrl={mine ? (profile?.avatar_url ?? null) : (peer?.avatar_url ?? null)}
-                    className="size-10 shrink-0 user-select-none"
-                  />
-                  <div className="min-w-0 flex-1">
-                    <p className="flex items-baseline gap-2 user-select-none">
-                      <span className="text-sm font-semibold tracking-tight text-[#dbdee1]">
-                        {mine ? profile?.display_name || profile?.username || "Voce" : peerName}
-                      </span>
-                      <span className="text-[11px] tabular-nums text-[#949ba4]">
-                        {new Date(m.created_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
-                      </span>
-                    </p>
-                    {m.content && (
-                      <div className="break-words text-[15px] leading-[1.6] text-[#dbdee1] user-select-text">
-                        {parseMarkdown(m.content)}
-                      </div>
-                    )}
-                    {m.attachment_type?.startsWith("audio/") && m.attachment_url && (
-                      <AudioPlayer src={m.attachment_url} duration={m.attachment_size ?? undefined} />
-                    )}
-                    {m.attachment_url && !m.attachment_type?.startsWith("audio/") && (
-                      <MessageAttachment
-                        url={m.attachment_url}
-                        name={m.attachment_name}
-                        type={m.attachment_type}
-                        size={m.attachment_size}
-                      />
-                    )}
-                  </div>
-                  <MessageHoverMenu
-                    isOwn={mine}
-                    isPinned={Boolean(m.is_pinned)}
-                    onPin={() => handleTogglePin(m.id, Boolean(m.is_pinned))}
-                    onDelete={() => handleDeleteMessage(m.id)}
-                    onReply={() => {}}
-                    onReact={() => {}}
-                    onCopyLink={() => {
-                      const link = `${window.location.origin}/dm/${userId}?msg=${m.id}`;
-                      void navigator.clipboard.writeText(link);
-                    }}
-                    onMarkUnread={() => {}}
-                    onForward={() => {}}
-                    onMore={(e) => {
-                      const rect = (e.currentTarget as HTMLElement)
-                        .closest("article")
-                        ?.getBoundingClientRect();
-                      setContextMenu({
-                        x: rect?.right ?? e.clientX,
-                        y: rect?.top ?? e.clientY,
-                        messageId: m.id,
-                      });
-                    }}
-                  />
-                </article>
+                <Fragment key={m.id}>
+                  {showSeparator && <DateSeparator date={m.created_at} />}
+                  <article
+                    onContextMenu={(e) => handleMessageContextMenu(e, m.id)}
+                    className="animate-fade-up group -mx-2 flex gap-3 rounded-xl px-2 py-1 transition-colors hover:bg-accent/25"
+                  >
+                    <UserAvatar
+                      username={mine ? (profile?.username ?? "?") : (peer?.username ?? "?")}
+                      avatarUrl={mine ? (profile?.avatar_url ?? null) : (peer?.avatar_url ?? null)}
+                      className="size-10 shrink-0 user-select-none"
+                    />
+                    <div className="min-w-0 flex-1">
+                      <p className="flex items-baseline gap-2 user-select-none">
+                        <span className="text-sm font-semibold tracking-tight text-[#dbdee1]">
+                          {mine ? profile?.display_name || profile?.username || "Voce" : peerName}
+                        </span>
+                        <span className="text-[11px] tabular-nums text-[#949ba4]">
+                          {new Date(m.created_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
+                        </span>
+                      </p>
+                      {m.content && (
+                        <div className="break-words text-[15px] leading-[1.6] text-[#dbdee1] user-select-text">
+                          {parseMarkdown(m.content)}
+                        </div>
+                      )}
+                      {m.attachment_type?.startsWith("audio/") && m.attachment_url && (
+                        <AudioPlayer src={m.attachment_url} duration={m.attachment_size ?? undefined} />
+                      )}
+                      {m.attachment_url && !m.attachment_type?.startsWith("audio/") && (
+                        <MessageAttachment
+                          url={m.attachment_url}
+                          name={m.attachment_name}
+                          type={m.attachment_type}
+                          size={m.attachment_size}
+                        />
+                      )}
+                    </div>
+                    <MessageHoverMenu
+                      isOwn={mine}
+                      isPinned={Boolean(m.is_pinned)}
+                      onPin={() => handleTogglePin(m.id, Boolean(m.is_pinned))}
+                      onDelete={() => handleDeleteMessage(m.id)}
+                      onReply={() => {}}
+                      onReact={() => {}}
+                      onCopyLink={() => {
+                        const link = `${window.location.origin}/dm/${userId}?msg=${m.id}`;
+                        void navigator.clipboard.writeText(link);
+                      }}
+                      onMarkUnread={() => {}}
+                      onForward={() => {}}
+                      onMore={(e) => {
+                        const rect = (e.currentTarget as HTMLElement)
+                          .closest("article")
+                          ?.getBoundingClientRect();
+                        setContextMenu({
+                          x: rect?.right ?? e.clientX,
+                          y: rect?.top ?? e.clientY,
+                          messageId: m.id,
+                        });
+                      }}
+                    />
+                  </article>
+                </Fragment>
               );
             })
           )}

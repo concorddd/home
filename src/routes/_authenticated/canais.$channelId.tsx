@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate, useParams } from "@tanstack/react-router";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, Fragment } from "react";
 import {
   Hash,
   Plus,
@@ -27,6 +27,7 @@ import { ServerRail } from "@/components/ServerRail";
 import { SideDrawer, MenuButton } from "@/components/MobileShell";
 import { ChatInput } from "@/components/ChatInput";
 import { MessageAttachment } from "@/components/MessageAttachment";
+import { DateSeparator } from "@/components/DateSeparator";
 import { MessageHoverMenu } from "@/components/MessageActions";
 import { MessageContextMenu } from "@/components/MessageContextMenu";
 import { parseMarkdown } from "@/lib/markdown";
@@ -114,6 +115,12 @@ function ChannelPage() {
   function handleMessageContextMenu(e: React.MouseEvent, messageId: string) {
     e.preventDefault();
     setContextMenu({ x: e.clientX, y: e.clientY, messageId });
+  }
+
+  // Extrai apenas dia/mês/ano para comparar entre mensagens consecutivas.
+  function dateKey(iso: string): string {
+    const d = new Date(iso);
+    return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
   }
   const [serverId, setServerId] = useState<string | null>(
     () => readCache<string>(`chan-server:${channelId}`) ?? null,
@@ -601,70 +608,76 @@ function ChannelPage() {
               Nenhuma mensagem ainda. Comece a conversa em #{currentChannel?.name ?? ""}.
             </p>
           ) : (
-            messages.map((m, i) => (
-              <article
-                key={m.id}
-                style={{ animationDelay: `${Math.min(i, 8) * 40}ms` }}
-                onContextMenu={(e) => handleMessageContextMenu(e, m.id)}
-                className="animate-fade-up group -mx-2 flex gap-3 rounded-xl px-2 py-1 transition-colors duration-200 hover:bg-accent/25"
-              >
-                <UserAvatar
-                  username={m.author?.username ?? "?"}
-                  avatarUrl={m.author?.avatar_url ?? null}
-                  className="size-10 shrink-0 shadow-[0_4px_12px_-6px_rgba(0,0,0,0.8)] user-select-none"
-                />
-                <div className="min-w-0 flex-1">
-                  <p className="flex items-baseline gap-2 user-select-none">
-                    <span className="text-sm font-semibold tracking-tight text-[#dbdee1]">
-                      {m.author?.display_name || m.author?.username || "Usuário"}
-                    </span>
-                    <span className="text-[11px] tabular-nums text-[#949ba4]">
-                      {new Date(m.created_at).toLocaleTimeString("pt-BR", {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })}
-                    </span>
-                  </p>
-                  {m.content && (
-                    <div className="break-words text-[15px] leading-[1.6] text-[#dbdee1] user-select-text">
-                      {parseMarkdown(m.content)}
-                    </div>
-                  )}
-                  {m.attachment_url && (
-                    <MessageAttachment
-                      url={m.attachment_url}
-                      name={m.attachment_name}
-                      type={m.attachment_type}
-                      size={m.attachment_size}
+            messages.map((m, i) => {
+              const showSeparator = i === 0 || dateKey(m.created_at) !== dateKey(messages[i - 1]!.created_at);
+              return (
+                <Fragment key={m.id}>
+                  {showSeparator && <DateSeparator date={m.created_at} />}
+                  <article
+                    key={m.id}
+                    style={{ animationDelay: `${Math.min(i, 8) * 40}ms` }}
+                    onContextMenu={(e) => handleMessageContextMenu(e, m.id)}
+                    className="animate-fade-up group -mx-2 flex gap-3 rounded-xl px-2 py-1 transition-colors duration-200 hover:bg-accent/25"
+                  >
+                    <UserAvatar
+                      username={m.author?.username ?? "?"}
+                      avatarUrl={m.author?.avatar_url ?? null}
+                      className="size-10 shrink-0 shadow-[0_4px_12px_-6px_rgba(0,0,0,0.8)] user-select-none"
                     />
-                  )}
-                </div>
-                <MessageHoverMenu
-                  isOwn={m.user_id === user?.id}
-                  isPinned={Boolean(m.is_pinned)}
-                  onPin={() => handleTogglePin(m.id, !!m.is_pinned)}
-                  onDelete={() => handleDeleteMessage(m.id)}
-                  onReply={() => {}}
-                  onReact={() => {}}
-                  onCopyLink={() => {
-                    const link = `${window.location.origin}/canais/${channelId}?msg=${m.id}`;
-                    void navigator.clipboard.writeText(link);
-                  }}
-                  onMarkUnread={() => {}}
-                  onForward={() => {}}
-                  onMore={(e) => {
-                    const rect = (e.currentTarget as HTMLElement)
-                      .closest("article")
-                      ?.getBoundingClientRect();
-                    setContextMenu({
-                      x: rect?.right ?? e.clientX,
-                      y: rect?.top ?? e.clientY,
-                      messageId: m.id,
-                    });
-                  }}
-                />
-              </article>
-            ))
+                    <div className="min-w-0 flex-1">
+                      <p className="flex items-baseline gap-2 user-select-none">
+                        <span className="text-sm font-semibold tracking-tight text-[#dbdee1]">
+                          {m.author?.display_name || m.author?.username || "Usuário"}
+                        </span>
+                        <span className="text-[11px] tabular-nums text-[#949ba4]">
+                          {new Date(m.created_at).toLocaleTimeString("pt-BR", {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })}
+                        </span>
+                      </p>
+                      {m.content && (
+                        <div className="break-words text-[15px] leading-[1.6] text-[#dbdee1] user-select-text">
+                          {parseMarkdown(m.content)}
+                        </div>
+                      )}
+                      {m.attachment_url && (
+                        <MessageAttachment
+                          url={m.attachment_url}
+                          name={m.attachment_name}
+                          type={m.attachment_type}
+                          size={m.attachment_size}
+                        />
+                      )}
+                    </div>
+                    <MessageHoverMenu
+                      isOwn={m.user_id === user?.id}
+                      isPinned={Boolean(m.is_pinned)}
+                      onPin={() => handleTogglePin(m.id, !!m.is_pinned)}
+                      onDelete={() => handleDeleteMessage(m.id)}
+                      onReply={() => {}}
+                      onReact={() => {}}
+                      onCopyLink={() => {
+                        const link = `${window.location.origin}/canais/${channelId}?msg=${m.id}`;
+                        void navigator.clipboard.writeText(link);
+                      }}
+                      onMarkUnread={() => {}}
+                      onForward={() => {}}
+                      onMore={(e) => {
+                        const rect = (e.currentTarget as HTMLElement)
+                          .closest("article")
+                          ?.getBoundingClientRect();
+                        setContextMenu({
+                          x: rect?.right ?? e.clientX,
+                          y: rect?.top ?? e.clientY,
+                          messageId: m.id,
+                        });
+                      }}
+                    />
+                  </article>
+                </Fragment>
+              );
+            })
           )}
           <div ref={endRef} />
         </div>
