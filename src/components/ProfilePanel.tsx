@@ -2,7 +2,7 @@ import { useNavigate } from "@tanstack/react-router";
 import { ExternalLink, Trash } from "lucide-react";
 import { useAuth, type Profile } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 export type Peer = Profile;
 
@@ -19,6 +19,15 @@ export function ProfilePanel({ profile, onClose }: Props) {
 
   const name = profile.display_name || profile.username || "Usuario";
   const isSelf = profile.id === user?.id;
+
+  // Fecha com a tecla Esc
+  useEffect(() => {
+    function handleKey(e: KeyboardEvent) {
+      if (e.key === "Escape") onClose();
+    }
+    window.addEventListener("keydown", handleKey);
+    return () => window.removeEventListener("keydown", handleKey);
+  }, [onClose]);
 
   async function handleRemoveFriend() {
     if (!user || !showConfirm) return;
@@ -39,7 +48,7 @@ export function ProfilePanel({ profile, onClose }: Props) {
 
   return (
     <aside
-      className="fixed inset-y-0 right-0 z-40 flex w-[340px] max-w-[85vw] flex-col border-l border-[#1e1f22] bg-panel-perfil shadow-2xl animate-in slide-in-from-right"
+      className="hidden w-[340px] shrink-0 flex-col border-l border-[#1e1f22] bg-panel-perfil shadow-2xl animate-in fade-in lg:flex"
       onClick={(e) => e.stopPropagation()}
     >
       {/* Banner de destaque — cor dinâmica do usuário (fallback #11a0f4) */}
@@ -54,15 +63,13 @@ export function ProfilePanel({ profile, onClose }: Props) {
         {/* Cabeçalho do painel */}
         <div className="flex items-center justify-between px-5 pt-4">
           <h3 className="text-sm font-semibold text-[#dbdee1]">Perfil</h3>
-          {!isSelf && (
-            <button
-              onClick={onClose}
-              className="flex size-7 items-center justify-center rounded-md text-[#949ba4] transition-colors hover:bg-[#404249] hover:text-[#dbdee1]"
-              title="Fechar"
-            >
-              ✕
-            </button>
-          )}
+          <button
+            onClick={onClose}
+            className="flex size-7 items-center justify-center rounded-md text-[#949ba4] transition-colors hover:bg-[#404249] hover:text-[#dbdee1]"
+            title="Fechar (Esc)"
+          >
+            ✕
+          </button>
         </div>
 
         {/* Avatar 80x80 sobre o banner, com recorte estático na cor do painel */}
