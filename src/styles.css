@@ -226,3 +226,20 @@
   user-select: none;
 }
 
+/* Menu de ações das mensagens (MessageHoverMenu): oculto por padrão, visível
+   apenas quando o container completo da mensagem (<article class="group …">)
+   recebe :hover. Posição e apariência ficam nas utility classes do elemento;
+   aqui vive só a regra de visibilidade pedida. */
+@layer components {
+  .message-hover-menu {
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.1s ease;
+  }
+
+  .group:hover .message-hover-menu {
+    opacity: 1;
+    pointer-events: auto;
+  }
+}
+

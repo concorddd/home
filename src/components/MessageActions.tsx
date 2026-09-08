@@ -28,7 +28,7 @@ export function MessageHoverMenu({
   const btn =
     "p-1.5 rounded text-[#b5bac1] hover:text-[#dbdee1] hover:bg-[#404249] transition-colors";
   return (
-    <div className="absolute -top-3 -right-1 z-20 flex items-center gap-0.5 rounded-lg border border-[#1e1f22] bg-[#2b2d31] px-1 py-0.5 shadow-lg">
+    <div className="message-hover-menu absolute -top-3 -right-1 z-20 flex items-center gap-0.5 rounded-lg border border-[#1e1f22] bg-[#2b2d31] px-1 py-0.5 shadow-lg">
       {onCopyLink && (
         <button
           className={btn}
