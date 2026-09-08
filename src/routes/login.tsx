@@ -157,22 +157,67 @@ function LoginPage() {
           email,
           password,
           options: {
-            emailRedirectTo: window.location.origin,
+            // Redirecionamento fixo do e-mail de confirmação para o domínio do
+            // produto (não mais a URL temporária do Lovable/Vercel).
+            emailRedirectTo: "https://conccord.shop",
             data: { username: clean },
           },
         });
         if (error) throw error;
+        // Falha silenciosa: resposta sem erro, porém sem usuário criado — não
+        // devemos exibir "conta criada" neste caso.
+        if (!data || !data.user) {
+          throw new Error("Não foi possível criar a conta agora. Tente novamente em instantes.");
+        }
+        // O Supabase devolve um usuário com `identities` vazio quando o e-mail
+        // já existe: não é erro HTTP, mas também não criou nada.
+        if (!data.user.identities || data.user.identities.length === 0) {
+          throw new Error("Este e-mail já está cadastrado. Faça login em vez de criar outra conta.");
+        }
         if (data.session) {
           navigate({ to: "/canais", replace: true });
         } else {
-          setNotice("Conta criada! Confirme seu e-mail para entrar.");
+          setNotice("Conta criada! Enviamos um link de confirmação para o seu e-mail. Confira a caixa de entrada e o spam.");
         }
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Não foi possível continuar.");
+      const raw = err instanceof Error ? err.message : String(err ?? "");
+      setError(translateAuthError(raw));
     } finally {
       setBusy(false);
     }
+  }
+
+  // Traduz erros comuns da API de Auth (Supabase) para a tela, incluindo os
+  // casos mais traiçoeiros: limite de taxa excedido e falha de SMTP — os dois
+  // costumam fazer o cadastro "parecer" bem-sucedido sem nunca entregar o e-mail.
+  function translateAuthError(raw: string): string {
+    const m = raw.toLowerCase();
+    if (
+      m.includes("rate limit") ||
+      m.includes("too many") ||
+      m.includes("over request rate") ||
+      m.includes("429") ||
+      m.includes("frequency")
+    ) {
+      return "Limite de tentativas/cadastros excedido no serviço de e-mail. Aguarde alguns minutos e tente novamente.";
+    }
+    if (
+      m.includes("smtp") ||
+      m.includes("email provider") ||
+      m.includes("unable to send") ||
+      m.includes("connection refused") ||
+      m.includes("email sending is disabled")
+    ) {
+      return "Falha no envio do e-mail de confirmação (SMTP não configurado corretamente). O cadastro pode até ter sido criado, mas o link não chegou — fale com o administrador.";
+    }
+    if (m.includes("already been registered") || m.includes("already registered") || m.includes("is already registered")) {
+      return "Este e-mail já está cadastrado. Faça login em vez de criar outra conta.";
+    }
+    if (m.includes("email address not authorized") || m.includes("not authorized")) {
+      return "Este e-mail não está autorizado para cadastro neste momento.";
+    }
+    return raw || "Não foi possível continuar.";
   }
 
   // Re-prepara o nonce anti-replay após uma tentativa malsucedida, para que
@@ -225,7 +270,7 @@ function LoginPage() {
         aria-hidden
         className="pointer-events-none absolute inset-0 bg-[radial-gradient(60%_50%_at_50%_0%,var(--primary)_0%,transparent_70%)] opacity-[0.18]"
       />
-      <div className="animate-fade-up relative w-full max-w-md rounded-2xl bg-channels p-8 shadow-[0_24px_64px_-24px_rgba(0,0,0,0.8)] ring-1 ring-white/[0.05]">
+      <div className="animate-fade-up relative w-full max-w-md rounded-xl border border-white/20 bg-channels p-8 shadow-[0_24px_64px_-24px_rgba(0,0,0,0.8)]">
         <div className="mb-6 flex flex-col items-center gap-2">
           <img src="/concord/logo.svg" alt="Concord" className="size-14" />
           <span className="text-lg font-bold tracking-tight text-foreground">Concord</span>
