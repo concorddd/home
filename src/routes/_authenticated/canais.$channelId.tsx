@@ -42,6 +42,7 @@ import { VoiceRoom } from "@/components/VoiceRoom";
 import { ProfileModalById } from "@/components/ProfileModalById";
 
 export const Route = createFileRoute("/_authenticated/canais/$channelId")({
+  ssr: false,
   head: () => ({
     meta: [
       { title: "Canais — Concord" },

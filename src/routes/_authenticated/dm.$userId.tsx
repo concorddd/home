@@ -29,6 +29,7 @@ import { ArrowLeft } from "lucide-react";
 import { Link, useNavigate } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/_authenticated/dm/$userId")({
+  ssr: false,
   head: () => ({ meta: [{ title: "Mensagem direta - Concord" }] }),
   component: DirectMessagePage,
 });

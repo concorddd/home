@@ -3,14 +3,20 @@ import { useCallback, useEffect, useState } from "react";
 /**
  * Cache híbrido: localStorage (persistência) + Map (velocidade).
  * A tela mostra imediatamente o último dado conhecido e revalida em background.
+ * SSR-safe: qualquer acesso a localStorage é protegido com typeof + try/catch.
  */
 const store = new Map<string, unknown>();
+
+function isBrowser() {
+  return typeof window !== "undefined" && typeof window.localStorage !== "undefined";
+}
 
 function persistKey(key: string) {
   return `concord:cache:${key}`;
 }
 
 function loadFromStorage<T>(key: string): T | undefined {
+  if (!isBrowser()) return undefined;
   try {
     const raw = localStorage.getItem(persistKey(key));
     if (!raw) return undefined;
@@ -21,6 +27,7 @@ function loadFromStorage<T>(key: string): T | undefined {
 }
 
 function saveToStorage<T>(key: string, value: T) {
+  if (!isBrowser()) return;
   try {
     localStorage.setItem(persistKey(key), JSON.stringify(value));
   } catch {
@@ -39,14 +46,9 @@ export function writeCache<T>(key: string, value: T) {
 }
 
 export function useCached<T>(key: string, fallback: T) {
-  const [state, setState] = useState<T>(() => {
-    const cached = loadFromStorage<T>(key);
-    if (cached !== undefined) {
-      store.set(key, cached);
-      return cached;
-    }
-    return fallback;
-  });
+  // SSR-safe: não lê localStorage durante o primeiro render (servidor).
+  // A hidratação acontece no useEffect abaixo, só no browser.
+  const [state, setState] = useState<T>(fallback);
 
   useEffect(() => {
     const cached = loadFromStorage<T>(key);

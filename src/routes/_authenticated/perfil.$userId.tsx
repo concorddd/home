@@ -11,6 +11,7 @@ import { DirectSidebar } from "@/components/DirectSidebar";
 import { SideDrawer, MenuButton } from "@/components/MobileShell";
 
 export const Route = createFileRoute("/_authenticated/perfil/$userId")({
+  ssr: false,
   head: () => ({ meta: [{ title: "Perfil — Concord" }] }),
   component: ProfilePage,
 });

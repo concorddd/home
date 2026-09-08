@@ -27,27 +27,14 @@ export function CallProvider({ children }: { children: ReactNode }) {
   const [micOn, setMicOn] = useState(true);
   const [camOn, setCamOn] = useState(false);
   // ---- mute/surdo globais (painel do usuário e chamadas compartilham) ----
-  const [selfDeafen, setSelfDeafen] = useState<boolean>(() => {
-    try {
-      return localStorage.getItem("concord:selfDeafen") === "1";
-    } catch {
-      return false;
-    }
-  });
-  const [selfMute, setSelfMute] = useState<boolean>(() => {
-    try {
-      return (
-        localStorage.getItem("concord:selfMute") === "1" ||
-        localStorage.getItem("concord:selfDeafen") === "1"
-      );
-    } catch {
-      return false;
-    }
-  });
+  // SSR-safe: localStorage só existe no browser — inicializa false e hidrata no mount.
+  const [selfDeafen, setSelfDeafen] = useState<boolean>(false);
+  const [selfMute, setSelfMute] = useState<boolean>(false);
   const [withVideo, setWithVideo] = useState(false);
   const [remoteVideoOn, setRemoteVideoOn] = useState(false);
   const [minimized, setMinimized] = useState(false);
   const [sharing, setSharing] = useState(false);
+  const [hydrated, setHydrated] = useState(false);
 
   const pcRef = useRef<RTCPeerConnection | null>(null);
   const localStreamRef = useRef<MediaStream | null>(null);
@@ -67,25 +54,40 @@ export function CallProvider({ children }: { children: ReactNode }) {
   const deafenSyncedRef = useRef(false);
 
   // ---- persistência das preferências de áudio ----
+  // Hidrata do localStorage uma única vez no browser (SSR renderiza false).
+  useEffect(() => {
+    try {
+      const deafen = localStorage.getItem("concord:selfDeafen") === "1";
+      const mute = localStorage.getItem("concord:selfMute") === "1" || deafen;
+      if (deafen) setSelfDeafen(true);
+      if (mute) setSelfMute(true);
+    } catch {
+      /* storage indisponível */
+    }
+    setHydrated(true);
+  }, []);
+
   useEffect(() => {
     selfMuteRef.current = selfMute;
+    if (!hydrated) return;
     try {
       if (selfMute) localStorage.setItem("concord:selfMute", "1");
       else localStorage.removeItem("concord:selfMute");
     } catch {
       /* ignore */
     }
-  }, [selfMute]);
+  }, [selfMute, hydrated]);
 
   useEffect(() => {
     selfDeafenRef.current = selfDeafen;
+    if (!hydrated) return;
     try {
       if (selfDeafen) localStorage.setItem("concord:selfDeafen", "1");
       else localStorage.removeItem("concord:selfDeafen");
     } catch {
       /* ignore */
     }
-  }, [selfDeafen]);
+  }, [selfDeafen, hydrated]);
 
   // Habilita/desabilita o microfone ao vivo (na chamada atual e nas próximas).
   useEffect(() => {

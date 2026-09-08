@@ -13,6 +13,7 @@ import { UserAvatar } from "@/components/UserAvatar";
 import { SmartStatusDot } from "@/components/StatusDot";
 
 export const Route = createFileRoute("/_authenticated/amigos")({
+  ssr: false,
   head: () => ({ meta: [{ title: "Amigos — Concord" }] }),
   component: FriendsPage,
 });
