@@ -13,6 +13,7 @@ import {
   Trash2,
   Cog,
   Volume2,
+  Users,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -24,12 +25,14 @@ import { InviteModal } from "@/components/InviteModal";
 import { ServerSettingsModal } from "@/components/ServerSettingsModal";
 import { ServerMedia } from "@/components/ServerMedia";
 import { ServerRail } from "@/components/ServerRail";
-import { SideDrawer, MenuButton } from "@/components/MobileShell";
+import { SideDrawer, MenuButton, BottomNav, RightDrawer, SwipeEdgeOpener } from "@/components/MobileShell";
 import { ChatInput } from "@/components/ChatInput";
 import { MessageAttachment } from "@/components/MessageAttachment";
 import { DateSeparator } from "@/components/DateSeparator";
 import { MessageHoverMenu } from "@/components/MessageActions";
 import { MessageContextMenu } from "@/components/MessageContextMenu";
+import { MessageActionSheet } from "@/components/MessageActionSheet";
+import { makeLongPressHandlers } from "@/hooks/useLongPress";
 import { parseMarkdown } from "@/lib/markdown";
 import { useRealtimeSync } from "@/hooks/useRealtimeSync";
 import { useBlocking } from "@/hooks/useBlocking";
@@ -103,6 +106,8 @@ function ChannelPage() {
     blockedIdsRef.current = blocked;
   }, [blocked]);
   const [profileUserId, setProfileUserId] = useState<string | null>(null);
+  const [actionMessageId, setActionMessageId] = useState<string | null>(null);
+  const [membersOpen, setMembersOpen] = useState(false);
   const sync = useRealtimeSync();
 
   const [servers, setServers] = useCached<Server[]>("servers", []);
@@ -417,11 +422,12 @@ function ChannelPage() {
 
   return (
     <div className="flex h-[100dvh] w-full overflow-hidden bg-background text-foreground">
+      <SwipeEdgeOpener onOpen={() => setDrawerOpen(true)} />
       <SideDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)}>
       <ServerRail activeServerId={serverId} />
 
       {/* Canais */}
-      <aside className="flex w-[16rem] max-w-[70vw] shrink-0 flex-col border-r border-border/60 bg-channels md:w-60 md:max-w-none">
+      <aside className="flex w-[16rem] max-w-[calc(85vw-60px)] shrink-0 flex-col border-r border-border/60 bg-channels md:w-60 md:max-w-none">
         <header className="flex h-14 items-center justify-between border-b border-border/60 px-4">
           <span className="truncate text-[15px] font-semibold tracking-tight">
             {currentServer?.name ?? "Concord"}
@@ -576,7 +582,7 @@ function ChannelPage() {
       </SideDrawer>
 
       {/* Chat */}
-      <main className="relative flex min-h-0 min-w-0 flex-1 flex-col">
+      <main className="relative flex min-h-0 min-w-0 flex-1 flex-col pb-[64px] xl:pb-0">
         <div
           aria-hidden
           className="pointer-events-none absolute inset-x-0 top-0 h-64 bg-gradient-to-b from-primary/[0.06] to-transparent"
@@ -596,6 +602,14 @@ function ChannelPage() {
             className="ml-auto flex items-center gap-1.5 rounded-lg bg-primary/15 px-3 py-1.5 text-xs font-semibold text-primary transition-all hover:bg-primary/25"
           >
             <UserPlus className="size-4" /> Convidar
+          </button>
+          <button
+            onClick={() => setMembersOpen(true)}
+            aria-label="Ver membros"
+            title="Membros"
+            className="flex size-9 shrink-0 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-accent/40 hover:text-foreground xl:hidden"
+          >
+            <Users className="size-5" />
           </button>
         </header>
 
@@ -632,7 +646,8 @@ function ChannelPage() {
                     key={m.id}
                     style={{ animationDelay: `${Math.min(i, 8) * 40}ms` }}
                     onContextMenu={(e) => handleMessageContextMenu(e, m.id)}
-                    className="animate-fade-up group -mx-2 flex gap-3 rounded-xl px-2 py-1 transition-colors duration-200 hover:bg-accent/25"
+                    {...makeLongPressHandlers(() => setActionMessageId(m.id))}
+                    className="animate-fade-up group -mx-2 flex gap-3 rounded-xl px-2 py-1 transition-colors duration-200 hover:bg-accent/25 active:bg-accent/40"
                   >
                     <button
                       type="button"
@@ -760,6 +775,53 @@ function ChannelPage() {
         </ul>
       </aside>
 
+      {/* Gaveta direita de membros (mobile) */}
+      <RightDrawer open={membersOpen} onClose={() => setMembersOpen(false)}>
+        <div className="flex h-14 shrink-0 items-center justify-between border-b border-border/60 px-4">
+          <span className="text-[15px] font-semibold tracking-tight">
+            Membros — {members.length}
+          </span>
+          <button
+            onClick={() => setMembersOpen(false)}
+            aria-label="Fechar membros"
+            className="flex size-8 items-center justify-center rounded-lg text-muted-foreground hover:text-foreground"
+          >
+            ✕
+          </button>
+        </div>
+        <ul className="flex-1 space-y-1 overflow-y-auto p-4">
+          {members.map((m, i) => (
+            <li
+              key={m.id}
+              style={{ animationDelay: `${i * 50}ms` }}
+              className="animate-fade-up group"
+            >
+              <button
+                type="button"
+                onClick={() => {
+                  setMembersOpen(false);
+                  setProfileUserId(m.id);
+                }}
+                className="flex w-full items-center gap-3 rounded-lg px-2 py-2 text-left transition-colors active:bg-accent/50"
+              >
+                <div className="relative shrink-0">
+                  <UserAvatar username={m.username} avatarUrl={m.avatar_url} />
+                  <SmartStatusDot
+                    status={m.status}
+                    isOnline={m.is_online}
+                    lastActiveAt={m.last_active_at}
+                    ring="border-channels"
+                  />
+                </div>
+                <span className="min-w-0 truncate text-sm tracking-tight text-[#dbdee1]">
+                  {m.display_name || m.username}
+                </span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      </RightDrawer>
+
       {profileUserId && (
         <ProfileModalById userId={profileUserId} onClose={() => setProfileUserId(null)} />
       )}
@@ -823,6 +885,53 @@ function ChannelPage() {
           }
         />
       )}
+
+      {/* Bottom sheet de ações (long press) — mobile */}
+      {actionMessageId && (
+        <MessageActionSheet
+          open
+          onClose={() => setActionMessageId(null)}
+          isOwn={messages.find((m) => m.id === actionMessageId)?.user_id === user?.id}
+          onReact={() => {}}
+          onReply={() => {}}
+          onForward={() => {}}
+          onCopyText={() => {
+            const msg = messages.find((m) => m.id === actionMessageId);
+            if (msg?.content) void navigator.clipboard.writeText(msg.content);
+          }}
+          onPin={() => {
+            const msg = messages.find((m) => m.id === actionMessageId);
+            if (msg) void handleTogglePin(msg.id, !!msg.is_pinned);
+          }}
+          onMarkUnread={() => {}}
+          onCopyLink={() => {
+            const link = `${window.location.origin}/canais/${channelId}?msg=${actionMessageId}`;
+            void navigator.clipboard.writeText(link);
+          }}
+          onSpeak={() => {
+            const msg = messages.find((m) => m.id === actionMessageId);
+            if (msg?.content && "speechSynthesis" in window) {
+              const u = new SpeechSynthesisUtterance(msg.content);
+              u.lang = "pt-BR";
+              speechSynthesis.cancel();
+              speechSynthesis.speak(u);
+            }
+          }}
+          onReport={() => {}}
+          onDelete={
+            messages.find((m) => m.id === actionMessageId)?.user_id === user?.id
+              ? () => {
+                  void handleDeleteMessage(actionMessageId);
+                }
+              : undefined
+          }
+        />
+      )}
+
+      <BottomNav
+        onServers={() => setDrawerOpen(true)}
+        onProfile={() => setSettingsOpen(true)}
+      />
     </div>
   );
 }

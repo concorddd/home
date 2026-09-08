@@ -1,7 +1,8 @@
 import { useRef, useState } from "react";
-import { Loader2, Plus, Send, Smile, X } from "lucide-react";
+import { FileText, Loader2, Mic, Plus, Send, Smile, X } from "lucide-react";
 import { useServerFn } from "@tanstack/react-start";
 import { EmojiPicker } from "@/components/EmojiPicker";
+import { BottomSheet } from "@/components/BottomSheet";
 import { formatBytes, uploadAttachment, type UploadedAttachment } from "@/lib/attachments";
 import { useAuth } from "@/hooks/useAuth";
 import { AudioRecorder } from "@/components/AudioRecorder";
@@ -21,6 +22,7 @@ export function ChatInput({
   const [progress, setProgress] = useState<number | null>(null);
   const [sending, setSending] = useState(false);
   const [emojiOpen, setEmojiOpen] = useState(false);
+  const [attachOpen, setAttachOpen] = useState(false);
   const [showAudioRecorder, setShowAudioRecorder] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -84,7 +86,7 @@ export function ChatInput({
   }
 
   return (
-    <form onSubmit={submit} className="relative shrink-0 px-4 pb-[max(1.5rem,env(safe-area-inset-bottom))]">
+    <form onSubmit={submit} className="relative shrink-0 px-4 pb-3 lg:pb-[max(1.5rem,env(safe-area-inset-bottom))]">
       {error && <p className="mb-2 text-sm text-destructive">{error}</p>}
 
       {file && (
@@ -113,7 +115,17 @@ export function ChatInput({
       ) : (
         <div className="relative flex items-center gap-3 rounded-lg bg-message-input px-4 py-3 shadow-[0_8px_32px_-12px_rgba(0,0,0,0.6)] ring-1 ring-white/[0.04] transition-all duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] focus-within:ring-primary/50">
           <input ref={fileRef} type="file" className="hidden" onChange={(e) => { const f = e.target.files?.[0] ?? null; setError(null); setFile(f); }} />
-          <button type="button" onClick={() => fileRef.current?.click()} aria-label="Anexar arquivo" title="Anexar arquivo" className="shrink-0 rounded-full bg-accent/70 p-1 text-muted-foreground transition-all hover:scale-110 hover:text-foreground">
+          <button
+            type="button"
+            onClick={() => {
+              // Mobile: bottom sheet de anexos (galeria/áudio); desktop: picker direto.
+              if (window.matchMedia("(min-width: 1024px)").matches) fileRef.current?.click();
+              else setAttachOpen(true);
+            }}
+            aria-label="Anexar arquivo"
+            title="Anexar arquivo"
+            className="shrink-0 rounded-full bg-accent/70 p-1 text-muted-foreground transition-all hover:scale-110 hover:text-foreground"
+          >
             <Plus className="size-4" />
           </button>
 
@@ -135,6 +147,34 @@ export function ChatInput({
           </button>
         </div>
       )}
+
+      {/* Sheet de anexos (mobile) — desliza de baixo, substituindo o teclado */}
+      <BottomSheet open={attachOpen} onClose={() => setAttachOpen(false)} title="Enviar anexo">
+        <div className="px-2 py-1">
+          <button
+            type="button"
+            onClick={() => {
+              setAttachOpen(false);
+              fileRef.current?.click();
+            }}
+            className="flex w-full items-center gap-3 rounded-lg px-3 py-3 text-sm text-[#dbdee1] transition-colors active:bg-[#404249]"
+          >
+            <FileText className="size-5 shrink-0 text-[#949ba4]" />
+            Foto ou arquivo
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setAttachOpen(false);
+              setShowAudioRecorder(true);
+            }}
+            className="flex w-full items-center gap-3 rounded-lg px-3 py-3 text-sm text-[#dbdee1] transition-colors active:bg-[#404249]"
+          >
+            <Mic className="size-5 shrink-0 text-[#949ba4]" />
+            Gravar áudio
+          </button>
+        </div>
+      </BottomSheet>
     </form>
   );
 }

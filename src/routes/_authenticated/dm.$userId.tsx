@@ -16,10 +16,13 @@ import { MessageAttachment } from "@/components/MessageAttachment";
 import { MessageHoverMenu } from "@/components/MessageActions";
 import { MessageContextMenu } from "@/components/MessageContextMenu";
 import { DateSeparator } from "@/components/DateSeparator";
-import { SideDrawer, MenuButton } from "@/components/MobileShell";
+import { SideDrawer, MenuButton, BottomNav, SwipeEdgeOpener } from "@/components/MobileShell";
 import type { Peer } from "@/components/ProfilePanel";
 import { UserProfileRightPanel } from "@/components/UserProfileRightPanel";
 import { ProfileModalById } from "@/components/ProfileModalById";
+import { MessageActionSheet } from "@/components/MessageActionSheet";
+import { makeLongPressHandlers } from "@/hooks/useLongPress";
+import { UserSettingsModal } from "@/components/UserSettingsModal";
 import { AudioPlayer } from "@/components/AudioPlayer";
 import { parseMarkdown } from "@/lib/markdown";
 import { ArrowLeft } from "lucide-react";
@@ -70,6 +73,8 @@ function DirectMessagePage() {
     blockedRef.current = blocked;
   }, [blocked]);
   const [profileUserId, setProfileUserId] = useState<string | null>(null);
+  const [actionMessageId, setActionMessageId] = useState<string | null>(null);
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   async function handleUnblock() {
     await unblockUser(userId);
@@ -257,12 +262,13 @@ useEffect(() => {
   const visibleMessages = blocked ? messages.filter((m) => m.sender_id !== userId) : messages;
 return (
     <div className="flex h-[100dvh] w-full overflow-hidden bg-background text-foreground">
+      <SwipeEdgeOpener onOpen={() => setDrawerOpen(true)} />
       <SideDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)}>
         <ServerRail homeActive />
         <DirectSidebar activeUserId={userId} />
       </SideDrawer>
 
-      <main className="relative flex min-h-0 min-w-0 flex-1 flex-col">
+      <main className="relative flex min-h-0 min-w-0 flex-1 flex-col pb-[64px] lg:pb-0">
         <header className="surface-glass relative z-10 flex h-14 shrink-0 items-center gap-2 border-b border-border/60 px-3 md:px-6">
           <MenuButton onClick={() => setDrawerOpen(true)} />
           <Link to="/amigos" aria-label="Voltar" className="flex size-9 shrink-0 items-center justify-center rounded-lg text-muted-foreground hover:text-foreground md:hidden">
@@ -281,7 +287,14 @@ return (
             <button
               type="button"
               title="Perfil"
-              onClick={() => setProfilePanelOpen(!profilePanelOpen)}
+              onClick={() => {
+                // Mobile: abre o perfil do contato como bottom sheet.
+                if (window.matchMedia("(min-width: 1024px)").matches) {
+                  setProfilePanelOpen(!profilePanelOpen);
+                } else {
+                  setProfileUserId(userId);
+                }
+              }}
               className={`flex size-9 items-center justify-center rounded-lg transition-colors ${profilePanelOpen ? "bg-accent/40 text-foreground" : "text-muted-foreground hover:bg-accent/40 hover:text-foreground"}`}
             >
               <Users className="size-5" />
@@ -315,7 +328,8 @@ return (
                   {showSeparator && <DateSeparator date={m.created_at} />}
                   <article
                     onContextMenu={(e) => handleMessageContextMenu(e, m.id)}
-                    className="animate-fade-up group -mx-2 flex gap-3 rounded-xl px-2 py-1 transition-colors hover:bg-accent/25"
+                    {...makeLongPressHandlers(() => setActionMessageId(m.id))}
+                    className="animate-fade-up group -mx-2 flex gap-3 rounded-xl px-2 py-1 transition-colors hover:bg-accent/25 active:bg-accent/40"
                   >
                     <button
                       type="button"
@@ -427,6 +441,54 @@ return (
           }}
         />
       )}
+
+      {/* Bottom sheet de ações (long press) — mobile */}
+      {actionMessageId && (
+        <MessageActionSheet
+          open
+          onClose={() => setActionMessageId(null)}
+          isOwn={messages.find((m) => m.id === actionMessageId)?.sender_id === user?.id}
+          onReact={() => {}}
+          onReply={() => {}}
+          onForward={() => {}}
+          onCopyText={() => {
+            const msg = messages.find((m) => m.id === actionMessageId);
+            if (msg?.content) void navigator.clipboard.writeText(msg.content);
+          }}
+          onPin={() => {
+            const msg = messages.find((m) => m.id === actionMessageId);
+            if (msg) void handleTogglePin(msg.id, Boolean(msg.is_pinned));
+          }}
+          onMarkUnread={() => {}}
+          onCopyLink={() => {
+            const link = `${window.location.origin}/dm/${userId}?msg=${actionMessageId}`;
+            void navigator.clipboard.writeText(link);
+          }}
+          onSpeak={() => {
+            const msg = messages.find((m) => m.id === actionMessageId);
+            if (msg?.content && "speechSynthesis" in window) {
+              const u = new SpeechSynthesisUtterance(msg.content);
+              u.lang = "pt-BR";
+              speechSynthesis.cancel();
+              speechSynthesis.speak(u);
+            }
+          }}
+          onReport={() => {}}
+          onDelete={
+            messages.find((m) => m.id === actionMessageId)?.sender_id === user?.id
+              ? () => {
+                  void handleDeleteMessage(actionMessageId);
+                }
+              : undefined
+          }
+        />
+      )}
+
+      <BottomNav
+        onServers={() => setDrawerOpen(true)}
+        onProfile={() => setSettingsOpen(true)}
+      />
+      {settingsOpen && <UserSettingsModal onClose={() => setSettingsOpen(false)} />}
 
       {contextMenu && (
         <MessageContextMenu

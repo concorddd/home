@@ -215,11 +215,11 @@ export function ProfileModal({
       role="dialog"
       aria-modal="true"
       aria-label={`Perfil de ${name}`}
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4"
+      className="fixed inset-0 z-50 flex items-end justify-center bg-black/75 lg:items-center lg:p-4"
       onClick={onClose}
     >
       <div
-        className="relative flex max-h-[85vh] min-h-[500px] w-full max-w-[800px] overflow-hidden rounded-xl bg-[#313338]"
+        className="relative flex max-h-[75vh] w-full max-w-[800px] flex-col overflow-y-auto rounded-t-2xl bg-[#313338] shadow-2xl animate-in slide-in-from-bottom duration-300 lg:max-h-[85vh] lg:min-h-[500px] lg:flex-row lg:overflow-hidden lg:rounded-xl lg:animate-in lg:fade-in lg:zoom-in-95 lg:slide-in-from-bottom-0"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Fechar (X) — canto superior direito */}

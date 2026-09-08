@@ -88,9 +88,9 @@ function FriendsPage() {
       <div className="flex h-screen overflow-hidden bg-[#313338]">
         <SideDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)}>
           <ServerRail homeActive />
+          <DirectSidebar activeUserId={null} />
         </SideDrawer>
-        <DirectSidebar activeUserId={null} />
-        <main className="flex-1 flex flex-col min-w-0">
+        <main className="flex-1 flex flex-col min-w-0 pb-[64px] lg:pb-0">
           <div className="flex items-center gap-4 border-b border-[#1e1f22] px-6 py-3">
             <MenuButton onClick={() => setDrawerOpen(true)} />
             <Users className="size-5 text-[#949ba4]" />

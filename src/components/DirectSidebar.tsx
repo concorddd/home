@@ -44,7 +44,7 @@ export function DirectSidebar({ activeUserId }: { activeUserId?: string | null }
     });
 
   return (
-    <aside className="flex w-[21rem] max-w-[80vw] shrink-0 flex-col border-r border-border/60 bg-channels md:w-[290px] md:max-w-none">
+    <aside className="flex w-[21rem] max-w-[calc(85vw-60px)] flex-col border-r border-border/60 bg-channels lg:w-[290px] lg:max-w-none lg:shrink-0">
       <header className="flex h-14 items-center border-b border-border/60 px-4">
         <span className="truncate text-[15px] font-semibold tracking-tight">Concord</span>
       </header>
