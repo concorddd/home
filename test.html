@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html>
+<head><title>Test</title></head>
+<body>
+<div id="errors" style="color:red; font-family:monospace; white-space:pre-wrap;"></div>
+<script>
+window.onerror = function(msg, url, line, col, err) {
+  document.getElementById('errors').textContent += 'ERROR: ' + msg + ' at ' + line + ':' + col + '\n';
+};
+window.addEventListener('unhandledrejection', function(e) {
+  document.getElementById('errors').textContent += 'PROMISE: ' + e.reason + '\n';
+});
+</script>
+<script type="module" src="http://localhost:8080/@id/virtual:tanstack-start-dev-client-entry"></script>
+</body>
+</html>

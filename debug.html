@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+<head><title>Debug</title></head>
+<body>
+<div id="status">Loading...</div>
+<script>
+window.onerror = function(msg, url, line, col, error) {
+  document.getElementById('status').innerHTML = 
+    '<h2>Error:</h2><pre>' + msg + '\n' + url + ':' + line + ':' + col + '</pre>';
+  console.error('Global error:', msg, url, line, col, error);
+};
+
+// Load the page in an iframe
+var iframe = document.createElement('iframe');
+iframe.style.width = '100%';
+iframe.style.height = '80vh';
+iframe.src = 'https://conccord.vercel.app';
+iframe.onload = function() {
+  try {
+    var win = iframe.contentWindow;
+    win.onerror = function(msg, url, line, col, error) {
+      document.getElementById('status').innerHTML = 
+        '<h2>iFrame Error:</h2><pre>' + msg + '\n' + url + ':' + line + ':' + col + '</pre>';
+    };
+  } catch(e) {
+    document.getElementById('status').innerHTML = 'Cross-origin: ' + e.message;
+  }
+};
+document.body.appendChild(iframe);
+</script>
+</body>
+</html>
