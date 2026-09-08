@@ -32,9 +32,11 @@ import { MessageHoverMenu } from "@/components/MessageActions";
 import { MessageContextMenu } from "@/components/MessageContextMenu";
 import { parseMarkdown } from "@/lib/markdown";
 import { useRealtimeSync } from "@/hooks/useRealtimeSync";
+import { useBlocking } from "@/hooks/useBlocking";
 import { useCached, readCache, writeCache } from "@/lib/cache";
 import { markServerSeen } from "@/hooks/useInbox";
 import { VoiceRoom } from "@/components/VoiceRoom";
+import { ProfileModalById } from "@/components/ProfileModalById";
 
 export const Route = createFileRoute("/_authenticated/canais/$channelId")({
   head: () => ({
@@ -94,6 +96,13 @@ function ChannelPage() {
   const navigate = useNavigate();
   const { user, profile } = useAuth();
   const { selfMute, selfDeafen, toggleSelfMute, toggleSelfDeafen } = useCalls();
+  // ---- Bloqueio (shadow ban efetivo apenas nas DMs; aqui filtramos a exibição) ----
+  const { blocked, isBlocked } = useBlocking();
+  const blockedIdsRef = useRef(blocked);
+  useEffect(() => {
+    blockedIdsRef.current = blocked;
+  }, [blocked]);
+  const [profileUserId, setProfileUserId] = useState<string | null>(null);
   const sync = useRealtimeSync();
 
   const [servers, setServers] = useCached<Server[]>("servers", []);
@@ -275,6 +284,8 @@ function ChannelPage() {
         },
         (payload) => {
           const row = payload.new as Omit<Message, "author">;
+          // Não renderiza novas mensagens de quem o usuário local bloqueou.
+          if (blockedIdsRef.current.has(row.user_id)) return;
           setMessages((prev) =>
             prev.some((m) => m.id === row.id)
               ? prev
@@ -400,6 +411,9 @@ function ChannelPage() {
       setMessages((prev) => prev.filter((msg) => msg.id !== messageId));
     }
   }
+
+  // Mensagens visíveis no canal: oculta localmente as de quem foi bloqueado.
+  const visibleMessages = messages.filter((m) => !isBlocked(m.user_id));
 
   return (
     <div className="flex h-[100dvh] w-full overflow-hidden bg-background text-foreground">
@@ -604,13 +618,13 @@ function ChannelPage() {
               <Loader2 className="size-4 animate-spin" />
               Carregando mensagens…
             </div>
-          ) : messages.length === 0 ? (
+          ) : visibleMessages.length === 0 ? (
             <p className="text-sm leading-relaxed text-muted-foreground">
               Nenhuma mensagem ainda. Comece a conversa em #{currentChannel?.name ?? ""}.
             </p>
           ) : (
-            messages.map((m, i) => {
-              const showSeparator = i === 0 || dateKey(m.created_at) !== dateKey(messages[i - 1]!.created_at);
+            visibleMessages.map((m, i) => {
+              const showSeparator = i === 0 || dateKey(m.created_at) !== dateKey(visibleMessages[i - 1]!.created_at);
               return (
                 <Fragment key={m.id}>
                   {showSeparator && <DateSeparator date={m.created_at} />}
@@ -620,16 +634,34 @@ function ChannelPage() {
                     onContextMenu={(e) => handleMessageContextMenu(e, m.id)}
                     className="animate-fade-up group -mx-2 flex gap-3 rounded-xl px-2 py-1 transition-colors duration-200 hover:bg-accent/25"
                   >
-                    <UserAvatar
-                      username={m.author?.username ?? "?"}
-                      avatarUrl={m.author?.avatar_url ?? null}
-                      className="size-10 shrink-0 shadow-[0_4px_12px_-6px_rgba(0,0,0,0.8)] user-select-none"
-                    />
+                    <button
+                      type="button"
+                      onClick={() => m.author?.id && setProfileUserId(m.author.id)}
+                      aria-label={`Abrir perfil de ${m.author?.display_name ?? m.author?.username ?? "usuário"}`}
+                      className="shrink-0 rounded-full transition-opacity focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#5865F2]"
+                    >
+                      <UserAvatar
+                        username={m.author?.username ?? "?"}
+                        avatarUrl={m.author?.avatar_url ?? null}
+                        className="size-10 shrink-0 shadow-[0_4px_12px_-6px_rgba(0,0,0,0.8)] user-select-none"
+                      />
+                    </button>
                     <div className="min-w-0 flex-1">
                       <p className="flex items-baseline gap-2 user-select-none">
-                        <span className="text-sm font-semibold tracking-tight text-[#dbdee1]">
-                          {m.author?.display_name || m.author?.username || "Usuário"}
-                        </span>
+                        {m.author?.id && (
+                          <button
+                            type="button"
+                            onClick={() => m.author?.id && setProfileUserId(m.author.id)}
+                            className="truncate text-sm font-semibold tracking-tight text-[#dbdee1] transition-colors hover:text-[#b5bac1] hover:underline"
+                          >
+                            {m.author?.display_name || m.author?.username || "Usuário"}
+                          </button>
+                        )}
+                        {!m.author?.id && (
+                          <span className="text-sm font-semibold tracking-tight text-[#dbdee1]">
+                            {m.author?.display_name || m.author?.username || "Usuário"}
+                          </span>
+                        )}
                         <span className="text-[11px] tabular-nums text-[#949ba4]">
                           {new Date(m.created_at).toLocaleTimeString("pt-BR", {
                             hour: "2-digit",
@@ -702,24 +734,35 @@ function ChannelPage() {
             <li
               key={m.id}
               style={{ animationDelay: `${i * 50}ms` }}
-              className="animate-fade-up flex items-center gap-3 rounded-lg px-2 py-2 transition-colors duration-200 hover:bg-accent/50"
+              className="animate-fade-up group"
             >
-              <div className="relative">
-                <UserAvatar username={m.username} avatarUrl={m.avatar_url} />
-                <SmartStatusDot
-                  status={m.status}
-                  isOnline={m.is_online}
-                  lastActiveAt={m.last_active_at}
-                  ring="border-channels"
-                />
-              </div>
-              <span className="text-sm tracking-tight text-muted-foreground">
-                {m.display_name || m.username}
-              </span>
+              <button
+                type="button"
+                onClick={() => setProfileUserId(m.id)}
+                aria-label={`Ver perfil de ${m.display_name || m.username}`}
+                className="flex w-full items-center gap-3 rounded-lg px-2 py-2 text-left transition-colors duration-200 hover:bg-accent/50"
+              >
+                <div className="relative shrink-0">
+                  <UserAvatar username={m.username} avatarUrl={m.avatar_url} />
+                  <SmartStatusDot
+                    status={m.status}
+                    isOnline={m.is_online}
+                    lastActiveAt={m.last_active_at}
+                    ring="border-channels"
+                  />
+                </div>
+                <span className="min-w-0 truncate text-sm tracking-tight text-muted-foreground transition-colors group-hover:text-foreground">
+                  {m.display_name || m.username}
+                </span>
+              </button>
             </li>
           ))}
         </ul>
       </aside>
+
+      {profileUserId && (
+        <ProfileModalById userId={profileUserId} onClose={() => setProfileUserId(null)} />
+      )}
 
       {settingsOpen && <UserSettingsModal onClose={() => setSettingsOpen(false)} />}
       {serverSettingsOpen && currentServer && (

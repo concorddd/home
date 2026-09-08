@@ -4,11 +4,14 @@
 //   • Direita (60%, #313338): abas ("Atividade" ativa) + card de atividade mockado.
 import { useEffect, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
-import { Gamepad2, MessageSquare, MoreHorizontal, UserPlus, X } from "lucide-react";
+import { Ban, Gamepad2, Loader2, MessageSquare, MoreHorizontal, UserCheck, UserPlus, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth, type Profile } from "@/hooks/useAuth";
+import { useBlocking } from "@/hooks/useBlocking";
 
 type Tab = "atividade" | "amigos" | "servidores";
+/** Relação de amizade entre o usuário local e o dono do perfil aberto. */
+type FriendRel = "loading" | "none" | "pending" | "friends";
 
 const TABS: Array<{ id: Tab; label: string }> = [
   { id: "atividade", label: "Atividade" },
@@ -21,15 +24,30 @@ function fmtDate(iso: string | null | undefined) {
   return new Date(iso).toLocaleDateString("pt-BR", { day: "2-digit", month: "long", year: "numeric" });
 }
 
-export function ProfileModal({ profile, onClose }: { profile: Profile; onClose: () => void }) {
+export function ProfileModal({
+  profile,
+  onClose,
+  onFriendStateChange,
+}: {
+  profile: Profile;
+  onClose: () => void;
+  /** Chamado quando a relação de amizade muda (para a tela de origem reagir). */
+  onFriendStateChange?: (rel: "none" | "pending" | "friends") => void;
+}) {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { isBlocked, blockUser, unblockUser } = useBlocking();
   const [tab, setTab] = useState<Tab>("atividade");
   const [friendsSince, setFriendsSince] = useState<string | null>(null);
   const [note, setNote] = useState("");
+  const [rel, setRel] = useState<FriendRel>("loading");
+  const [busy, setBusy] = useState(false);
+  const [moreOpen, setMoreOpen] = useState(false);
+  const [feedback, setFeedback] = useState<string | null>(null);
 
   const name = profile.display_name || profile.username || "Usuário";
   const isSelf = profile.id === user?.id;
+  const blockedSelf = isBlocked(profile.id);
 
   // Fecha com a tecla Esc
   useEffect(() => {
@@ -83,6 +101,114 @@ export function ProfileModal({ profile, onClose }: { profile: Profile; onClose: 
     onClose();
     navigate({ to: "/dm/$userId", params: { userId: profile.id } });
   }
+
+  // ---- Amizade: carrega o estado atual (aceita ou pendente) ----
+  useEffect(() => {
+    if (!user || isSelf) {
+      setRel("none");
+      return;
+    }
+    let alive = true;
+    void (async () => {
+      const { data } = await supabase
+        .from("friendships")
+        .select("status")
+        .or(
+          `and(requester_id.eq.${user.id},addressee_id.eq.${profile.id}),and(requester_id.eq.${profile.id},addressee_id.eq.${user.id})`,
+        )
+        .in("status", ["accepted", "pending"])
+        .limit(1)
+        .maybeSingle();
+      if (!alive) return;
+      const st = (data as { status: string } | null)?.status;
+      setRel(st === "accepted" ? "friends" : st === "pending" ? "pending" : "none");
+    })();
+    return () => {
+      alive = false;
+    };
+  }, [user, profile.id, isSelf]);
+
+  function applyRel(next: FriendRel) {
+    setRel(next);
+    if (next !== "loading") onFriendStateChange?.(next);
+  }
+
+  async function handleAddFriend() {
+    if (!user) return;
+    setBusy(true);
+    setFeedback(null);
+    const { error } = await supabase
+      .from("friendships")
+      .insert({ requester_id: user.id, addressee_id: profile.id, status: "pending" });
+    if (error) {
+      // O pedido pode já existir: relê o estado real do banco.
+      const { data } = await supabase
+        .from("friendships")
+        .select("status")
+        .or(
+          `and(requester_id.eq.${user.id},addressee_id.eq.${profile.id}),and(requester_id.eq.${profile.id},addressee_id.eq.${user.id})`,
+        )
+        .limit(1)
+        .maybeSingle();
+      const st = (data as { status: string } | null)?.status;
+      applyRel(st === "accepted" ? "friends" : st === "pending" ? "pending" : "none");
+      setBusy(false);
+      return;
+    }
+    applyRel("pending");
+    setFeedback(`Pedido de amizade enviado para ${name}.`);
+    setBusy(false);
+  }
+
+  async function handleRemoveFriend() {
+    if (!user) return;
+    setBusy(true);
+    setFeedback(null);
+    // Remove apenas a relação de amizade no banco. Nunca apaga nem oculta o
+    // histórico de mensagens entre os dois usuários.
+    const { error } = await supabase
+      .from("friendships")
+      .delete()
+      .or(
+        `and(requester_id.eq.${user.id},addressee_id.eq.${profile.id}),and(requester_id.eq.${profile.id},addressee_id.eq.${user.id})`,
+      );
+    setBusy(false);
+    if (error) {
+      setFeedback(error.message);
+      return;
+    }
+    applyRel("none");
+    setFeedback(`Amizade com ${name} desfeita. O histórico de mensagens foi mantido.`);
+  }
+
+  async function handleToggleBlock() {
+    setBusy(true);
+    setFeedback(null);
+    const ok = blockedSelf ? await unblockUser(profile.id) : await blockUser(profile.id);
+    setBusy(false);
+    setMoreOpen(false);
+    if (ok) {
+      setFeedback(
+        blockedSelf
+          ? `Você desbloqueou ${name}.`
+          : `Você bloqueou ${name}. As mensagens antigas continuam visíveis.`,
+      );
+    } else {
+      setFeedback(
+        "Não foi possível concluir. Talvez a tabela user_blocks ainda não exista no banco — rode o script APLICAR_TUDO_NO_BANCO.sql.",
+      );
+    }
+  }
+
+  // Fecha o dropdown ao clicar fora dele.
+  useEffect(() => {
+    if (!moreOpen) return;
+    function onDocClick() {
+      setMoreOpen(false);
+    }
+    document.addEventListener("click", onDocClick);
+    return () => document.removeEventListener("click", onDocClick);
+  }, [moreOpen]);
 
   return (
     <div
@@ -149,19 +275,84 @@ export function ProfileModal({ profile, onClose }: { profile: Profile; onClose: 
                   <MessageSquare className="size-4" /> Mensagem
                 </button>
               )}
-              <button
-                title="Adicionar amigo"
-                className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-[#404249] text-[#dbdee1] transition-colors hover:bg-[#4e5058]"
-              >
-                <UserPlus className="size-4" />
-              </button>
-              <button
-                title="Mais opções"
-                className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-[#404249] text-[#dbdee1] transition-colors hover:bg-[#4e5058]"
-              >
-                <MoreHorizontal className="size-4" />
-              </button>
+              {!isSelf && (
+                <button
+                  title={
+                    rel === "friends"
+                      ? "Desfazer amizade"
+                      : rel === "pending"
+                        ? "Pedido de amizade enviado"
+                        : "Adicionar amigo"
+                  }
+                  aria-label={
+                    rel === "friends"
+                      ? "Desfazer amizade"
+                      : rel === "pending"
+                        ? "Pedido de amizade enviado"
+                        : "Adicionar amigo"
+                  }
+                  disabled={rel === "loading" || rel === "pending" || busy}
+                  onClick={() => {
+                    if (rel === "friends") {
+                      if (window.confirm(`Desfazer amizade com ${name}? O histórico de mensagens não será apagado.`)) {
+                        void handleRemoveFriend();
+                      }
+                    } else if (rel === "none") {
+                      void handleAddFriend();
+                    }
+                  }}
+                  className={`flex size-9 shrink-0 items-center justify-center rounded-lg transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
+                    rel === "friends"
+                      ? "bg-[#23a55a]/90 text-white hover:bg-[#1f8b4d]"
+                      : "bg-[#404249] text-[#dbdee1] hover:bg-[#4e5058]"
+                  }`}
+                >
+                  {rel === "friends" ? (
+                    <UserCheck className="size-4" />
+                  ) : rel === "pending" ? (
+                    <UserPlus className="size-4" />
+                  ) : (
+                    <UserPlus className="size-4" />
+                  )}
+                </button>
+              )}
+              {!isSelf && (
+                <div className="relative">
+                  <button
+                    title="Mais opções"
+                    aria-label="Mais opções"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setMoreOpen((v) => !v);
+                    }}
+                    className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-[#404249] text-[#dbdee1] transition-colors hover:bg-[#4e5058]"
+                  >
+                    <MoreHorizontal className="size-4" />
+                  </button>
+                  {moreOpen && (
+                    <div
+                      className="absolute top-full right-0 z-40 mt-1 w-60 overflow-hidden rounded-lg border border-[#1e1f22] bg-[#2b2d31] py-1 shadow-2xl"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <button
+                        onClick={() => void handleToggleBlock()}
+                        disabled={busy}
+                        className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-[#f0553c] transition-colors hover:bg-[#404249] disabled:opacity-50"
+                      >
+                        <Ban className="size-4 shrink-0" />
+                        {blockedSelf ? `Desbloquear ${name}` : "Bloquear usuário"}
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
+
+            {feedback && (
+              <p className="mt-3 rounded-lg bg-accent/40 px-3 py-2 text-xs text-[#dbdee1]">
+                {feedback}
+              </p>
+            )}
 
             {/* Seções textuais */}
             <div className="mt-6 space-y-5 text-sm">

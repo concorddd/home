@@ -23,6 +23,7 @@ export function RealtimeSyncProvider({ children }: { children: ReactNode }) {
       .on("postgres_changes", { event: "*", schema: "public", table: "server_members" }, bump)
       .on("postgres_changes", { event: "*", schema: "public", table: "channels" }, bump)
       .on("postgres_changes", { event: "*", schema: "public", table: "friendships" }, bump)
+      .on("postgres_changes", { event: "*", schema: "public", table: "user_blocks" }, bump)
       .subscribe();
 
     return () => {

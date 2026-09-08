@@ -4,6 +4,7 @@ import { AtSign, Loader2, Phone, Video as VideoIcon, Users, Trash2, Pin } from "
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useCalls } from "@/hooks/useCalls";
+import { useBlocking } from "@/hooks/useBlocking";
 import { markDmRead } from "@/hooks/useInbox";
 import { useRealtimeSync } from "@/hooks/useRealtimeSync";
 import { useCached, readCache } from "@/lib/cache";
@@ -18,6 +19,7 @@ import { DateSeparator } from "@/components/DateSeparator";
 import { SideDrawer, MenuButton } from "@/components/MobileShell";
 import type { Peer } from "@/components/ProfilePanel";
 import { UserProfileRightPanel } from "@/components/UserProfileRightPanel";
+import { ProfileModalById } from "@/components/ProfileModalById";
 import { AudioPlayer } from "@/components/AudioPlayer";
 import { parseMarkdown } from "@/lib/markdown";
 import { ArrowLeft } from "lucide-react";
@@ -59,6 +61,19 @@ function DirectMessagePage() {
     y: number;
     messageId: string;
   } | null>(null);
+
+  // ---- Bloqueio (shadow ban) ----
+  const { isBlocked, unblockUser } = useBlocking();
+  const blocked = isBlocked(userId);
+  const blockedRef = useRef(blocked);
+  useEffect(() => {
+    blockedRef.current = blocked;
+  }, [blocked]);
+  const [profileUserId, setProfileUserId] = useState<string | null>(null);
+
+  async function handleUnblock() {
+    await unblockUser(userId);
+  }
 
   function handleMessageContextMenu(e: React.MouseEvent, messageId: string) {
     e.preventDefault();
@@ -151,6 +166,8 @@ useEffect(() => {
         const row = payload.new as Dm;
         const mine = (row.sender_id === user?.id && row.recipient_id === userId) || (row.sender_id === userId && row.recipient_id === user?.id);
         if (!mine) return;
+        // Shadow ban: mensagens novas de quem foi bloqueado não são renderizadas.
+        if (blockedRef.current && row.sender_id === userId) return;
         setMessages((prev) => (prev.some((m) => m.id === row.id) ? prev : [...prev, row]));
       })
       .subscribe();
@@ -235,6 +252,9 @@ useEffect(() => {
   }
 
   const peerName = peer?.display_name || peer?.username || "usuario";
+  // Shadow ban visual: mensagens de quem foi bloqueado não aparecem na tela,
+  // mas o histórico continua intacto no banco (desbloquear restaura tudo).
+  const visibleMessages = blocked ? messages.filter((m) => m.sender_id !== userId) : messages;
 return (
     <div className="flex h-[100dvh] w-full overflow-hidden bg-background text-foreground">
       <SideDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)}>
@@ -282,14 +302,14 @@ return (
             <p className="flex items-center gap-2 text-sm text-muted-foreground">
               <Loader2 className="size-4 animate-spin" /> Carregando conversa...
             </p>
-          ) : messages.length === 0 ? (
+          ) : visibleMessages.length === 0 ? (
             <p className="text-sm leading-relaxed text-muted-foreground">
               Este e o comeco da sua conversa com {peerName}.
             </p>
           ) : (
-            messages.map((m, i) => {
+            visibleMessages.map((m, i) => {
               const mine = m.sender_id === user?.id;
-              const showSeparator = i === 0 || dateKey(m.created_at) !== dateKey(messages[i - 1]!.created_at);
+              const showSeparator = i === 0 || dateKey(m.created_at) !== dateKey(visibleMessages[i - 1]!.created_at);
               return (
                 <Fragment key={m.id}>
                   {showSeparator && <DateSeparator date={m.created_at} />}
@@ -297,16 +317,27 @@ return (
                     onContextMenu={(e) => handleMessageContextMenu(e, m.id)}
                     className="animate-fade-up group -mx-2 flex gap-3 rounded-xl px-2 py-1 transition-colors hover:bg-accent/25"
                   >
-                    <UserAvatar
-                      username={mine ? (profile?.username ?? "?") : (peer?.username ?? "?")}
-                      avatarUrl={mine ? (profile?.avatar_url ?? null) : (peer?.avatar_url ?? null)}
-                      className="size-10 shrink-0 user-select-none"
-                    />
+                    <button
+                      type="button"
+                      onClick={() => setProfileUserId(mine ? user?.id ?? null : userId)}
+                      aria-label={`Abrir perfil de ${mine ? "você" : peerName}`}
+                      className="shrink-0 rounded-full transition-opacity focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#5865F2]"
+                    >
+                      <UserAvatar
+                        username={mine ? (profile?.username ?? "?") : (peer?.username ?? "?")}
+                        avatarUrl={mine ? (profile?.avatar_url ?? null) : (peer?.avatar_url ?? null)}
+                        className="size-10 shrink-0 user-select-none"
+                      />
+                    </button>
                     <div className="min-w-0 flex-1">
                       <p className="flex items-baseline gap-2 user-select-none">
-                        <span className="text-sm font-semibold tracking-tight text-[#dbdee1]">
+                        <button
+                          type="button"
+                          onClick={() => setProfileUserId(mine ? user?.id ?? null : userId)}
+                          className="truncate text-sm font-semibold tracking-tight text-[#dbdee1] transition-colors hover:text-[#b5bac1] hover:underline"
+                        >
                           {mine ? profile?.display_name || profile?.username || "Voce" : peerName}
-                        </span>
+                        </button>
                         <span className="text-[11px] tabular-nums text-[#949ba4]">
                           {new Date(m.created_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
                         </span>
@@ -360,7 +391,19 @@ return (
           <div ref={endRef} />
         </div>
 
-        {isFriend === false ? (
+        {blocked ? (
+          <div className="shrink-0 px-4 pb-[max(1.5rem,env(safe-area-inset-bottom))]">
+            <div className="mx-auto flex max-w-md flex-col items-center justify-center gap-3 rounded-xl bg-[#2b2d31]/70 px-6 py-5 text-center ring-1 ring-white/[0.04]">
+              <p className="text-sm font-medium text-[#dbdee1]">Você bloqueou esta pessoa</p>
+              <button
+                onClick={() => void handleUnblock()}
+                className="rounded-lg bg-[#5865F2] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[#4752c4]"
+              >
+                Desbloquear {peerName}
+              </button>
+            </div>
+          </div>
+        ) : isFriend === false ? (
           <p className="px-4 pb-8 text-sm text-muted-foreground md:px-6">Voce precisa ser amigo para trocar mensagens privadas.</p>
         ) : (
           <ChatInput placeholder={`Conversar com ${peerName}`} onSend={handleSend} />
@@ -372,6 +415,16 @@ return (
           profile={peer}
           isFriend={isFriend === true}
           onClose={() => setProfilePanelOpen(false)}
+        />
+      )}
+
+      {profileUserId && (
+        <ProfileModalById
+          userId={profileUserId}
+          onClose={() => setProfileUserId(null)}
+          onFriendStateChange={(next) => {
+            if (profileUserId === userId) setIsFriend(next === "friends");
+          }}
         />
       )}
 

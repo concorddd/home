@@ -396,3 +396,64 @@ ALTER TABLE public.profiles REPLICA IDENTITY FULL;
 -- O front injeta via inline style: banner_color || '#11a0f4'
 -- ============================================================
 ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS banner_color text;
+
+-- ============================================================
+-- SISTEMA DE BLOQUEIO (user_blocks) — bloqueio + shadow ban
+-- ============================================================
+CREATE TABLE IF NOT EXISTS public.user_blocks (
+  blocker_id uuid NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+  blocked_id uuid NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  CONSTRAINT user_blocks_pkey PRIMARY KEY (blocker_id, blocked_id)
+);
+
+ALTER TABLE public.user_blocks ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Usuário vê seus bloqueios" ON public.user_blocks;
+CREATE POLICY "Usuário vê seus bloqueios" ON public.user_blocks
+  FOR SELECT TO authenticated
+  USING (blocker_id = auth.uid());
+
+DROP POLICY IF EXISTS "Usuário cria seus bloqueios" ON public.user_blocks;
+CREATE POLICY "Usuário cria seus bloqueios" ON public.user_blocks
+  FOR INSERT TO authenticated
+  WITH CHECK (blocker_id = auth.uid());
+
+DROP POLICY IF EXISTS "Usuário remove seus bloqueios" ON public.user_blocks;
+CREATE POLICY "Usuário remove seus bloqueios" ON public.user_blocks
+  FOR DELETE TO authenticated
+  USING (blocker_id = auth.uid());
+
+ALTER TABLE public.user_blocks REPLICA IDENTITY FULL;
+
+-- Shadow ban de DM: se o destinatário bloqueou o remetente, a mensagem NÃO é
+-- salva (RETURN NULL descarta silenciosamente). O bloqueado continua vendo o
+-- chat normalmente e "envia", mas nada chega ao destinatário nem fica no banco.
+CREATE OR REPLACE FUNCTION public.prevent_dm_to_blocker()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM public.user_blocks
+    WHERE blocker_id = NEW.recipient_id
+      AND blocked_id = NEW.sender_id
+  ) THEN
+    RETURN NULL;
+  END IF;
+  RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS trg_dm_shadow_ban ON public.direct_messages;
+CREATE TRIGGER trg_dm_shadow_ban
+  BEFORE INSERT ON public.direct_messages
+  FOR EACH ROW
+  EXECUTE FUNCTION public.prevent_dm_to_blocker();
+
+-- Realtime: mudanças em user_blocks disparam o sync global (o front reconsulta).
+DO $$ BEGIN
+  BEGIN ALTER PUBLICATION supabase_realtime ADD TABLE public.user_blocks; EXCEPTION WHEN duplicate_object THEN NULL; END;
+END $$;
