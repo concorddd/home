@@ -70,8 +70,10 @@ export function GuidedTour() {
 
   const current = STEPS[step]!;
   const pad = 8;
-  const tipTop = rect ? Math.min(rect.top + rect.height + 12, window.innerHeight - 190) : 120;
-  const tipLeft = rect ? Math.min(Math.max(rect.left - 8, 16), window.innerWidth - 300) : 24;
+  const viewportH = typeof window !== "undefined" ? window.innerHeight : 800;
+  const viewportW = typeof window !== "undefined" ? window.innerWidth : 1200;
+  const tipTop = rect ? Math.min(rect.top + rect.height + 12, viewportH - 190) : 120;
+  const tipLeft = rect ? Math.min(Math.max(rect.left - 8, 16), viewportW - 300) : 24;
 
   return (
     <div className="fixed inset-0 z-[90]">

@@ -863,7 +863,7 @@ function ChannelPage() {
           }}
           onMarkUnread={() => {}}
           onCopyLink={() => {
-            const link = `${window.location.origin}/canais/${channelId}?msg=${contextMenu.messageId}`;
+            const link = typeof window !== "undefined" ? `${window.location.origin}/canais/${channelId}?msg=${contextMenu.messageId}` : `/canais/${channelId}?msg=${contextMenu.messageId}`;
             void navigator.clipboard.writeText(link);
           }}
           onSpeak={() => {
@@ -906,7 +906,7 @@ function ChannelPage() {
           }}
           onMarkUnread={() => {}}
           onCopyLink={() => {
-            const link = `${window.location.origin}/canais/${channelId}?msg=${actionMessageId}`;
+            const link = typeof window !== "undefined" ? `${window.location.origin}/canais/${channelId}?msg=${actionMessageId}` : `/canais/${channelId}?msg=${actionMessageId}`;
             void navigator.clipboard.writeText(link);
           }}
           onSpeak={() => {

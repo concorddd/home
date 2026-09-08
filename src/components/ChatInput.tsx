@@ -119,7 +119,7 @@ export function ChatInput({
             type="button"
             onClick={() => {
               // Mobile: bottom sheet de anexos (galeria/áudio); desktop: picker direto.
-              if (window.matchMedia("(min-width: 1024px)").matches) fileRef.current?.click();
+              if (typeof window !== "undefined" && window.matchMedia("(min-width: 1024px)").matches) fileRef.current?.click();
               else setAttachOpen(true);
             }}
             aria-label="Anexar arquivo"

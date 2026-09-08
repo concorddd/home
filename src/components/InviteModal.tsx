@@ -42,7 +42,7 @@ export function InviteModal({ serverId, onClose }: { serverId: string; onClose: 
     };
   }, [serverId, user]);
 
-  const link = code ? `${window.location.origin}/convite/${code}` : "";
+  const link = code && typeof window !== "undefined" ? `${window.location.origin}/convite/${code}` : "";
 
   return (
     <div
