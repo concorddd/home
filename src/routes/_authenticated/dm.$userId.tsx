@@ -16,7 +16,8 @@ import { MessageHoverMenu } from "@/components/MessageActions";
 import { MessageContextMenu } from "@/components/MessageContextMenu";
 import { DateSeparator } from "@/components/DateSeparator";
 import { SideDrawer, MenuButton } from "@/components/MobileShell";
-import { ProfilePanel, type Peer } from "@/components/ProfilePanel";
+import type { Peer } from "@/components/ProfilePanel";
+import { UserProfileRightPanel } from "@/components/UserProfileRightPanel";
 import { AudioPlayer } from "@/components/AudioPlayer";
 import { parseMarkdown } from "@/lib/markdown";
 import { ArrowLeft } from "lucide-react";
@@ -366,7 +367,13 @@ return (
         )}
       </main>
 
-      {profilePanelOpen && peer && <ProfilePanel profile={peer} onClose={() => setProfilePanelOpen(false)} />}
+            {profilePanelOpen && peer && (
+        <UserProfileRightPanel
+          profile={peer}
+          isFriend={isFriend === true}
+          onClose={() => setProfilePanelOpen(false)}
+        />
+      )}
 
       {contextMenu && (
         <MessageContextMenu

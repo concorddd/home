@@ -10,9 +10,11 @@ export type Peer = Profile;
 type Props = {
   profile: Peer;
   onClose: () => void;
+  /** Classes extras para o aside (ex.: "min-h-0 flex-1" dentro da coluna do painel). */
+  className?: string;
 };
 
-export function ProfilePanel({ profile, onClose }: Props) {
+export function ProfilePanel({ profile, onClose, className = "" }: Props) {
   const { user } = useAuth();
   const [removing, setRemoving] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
@@ -91,7 +93,7 @@ export function ProfilePanel({ profile, onClose }: Props) {
   return (
     <>
       <aside
-        className="hidden w-[340px] shrink-0 flex-col border-l border-[#1e1f22] bg-panel-perfil shadow-2xl animate-in fade-in lg:flex"
+        className={`hidden w-[340px] shrink-0 flex-col rounded-l-xl border-l border-[#1e1f22] bg-panel-perfil shadow-2xl animate-in fade-in lg:flex ${className}`}
         onClick={(e) => e.stopPropagation()}
       >
       {/* Banner de destaque — cor dinâmica do usuário (fallback #11a0f4) */}
@@ -207,8 +209,7 @@ export function ProfilePanel({ profile, onClose }: Props) {
               Membro desde: {new Date(profile.created_at).toLocaleDateString("pt-BR")}
             </p>
           )}
-        </div>
-        {/* Ações no rodapé */}
+                {/* Ações no rodapé */}
         <div className="mt-auto border-t border-[#2b2d31] p-3">
           <button
             onClick={() => setModalOpen(true)}
@@ -217,7 +218,8 @@ export function ProfilePanel({ profile, onClose }: Props) {
             Ver Perfil Completo
           </button>
         </div>
-      </div>
+                </div>
+        </div>
       </aside>
 
       {showConfirm && (

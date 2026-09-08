@@ -35,6 +35,7 @@ import { useRealtimeSync } from "@/hooks/useRealtimeSync";
 import { useCached, readCache, writeCache } from "@/lib/cache";
 import { markServerSeen } from "@/hooks/useInbox";
 import { VoiceRoom } from "@/components/VoiceRoom";
+import { UserProfileRightPanel } from "@/components/UserProfileRightPanel";
 
 export const Route = createFileRoute("/_authenticated/canais/$channelId")({
   head: () => ({
@@ -505,7 +506,7 @@ function ChannelPage() {
         </div>
 
         {/* Painel do usuário local — barra flutuante estilo composer */}
-        <div className="px-2 pb-2 pt-1">
+        <div className="px-2 pb-2 pt-1 lg:hidden">
           <div className="flex h-[52px] items-center gap-2 rounded-lg bg-user-panel px-2 shadow-[0_8px_24px_-8px_rgba(0,0,0,0.6)] ring-1 ring-white/[0.04]">
             <div className="relative shrink-0">
               <UserAvatar username={profile?.username ?? "?"} avatarUrl={profile?.avatar_url ?? null} />
@@ -719,6 +720,15 @@ function ChannelPage() {
           ))}
         </ul>
       </aside>
+
+      {/* Painel do próprio usuário — barra de chamada + perfil, igual às DMs */}
+      {profile && (
+        <UserProfileRightPanel
+          profile={profile}
+          onClose={() => {}}
+          onOpenSettings={() => setSettingsOpen(true)}
+        />
+      )}
 
       {settingsOpen && <UserSettingsModal onClose={() => setSettingsOpen(false)} />}
       {serverSettingsOpen && currentServer && (
