@@ -86,13 +86,14 @@ type Message = {
   author: Author | null;
 };
 
-function initials(name: string) {
+function initials(name: string | null | undefined) {
+  if (!name) return "?";
   return name
     .split(/\s+/)
     .slice(0, 2)
     .map((w) => w[0])
     .join("")
-    .toUpperCase();
+    .toUpperCase() || "?";
 }
 
 function ChannelPage() {
@@ -419,7 +420,19 @@ function ChannelPage() {
   }
 
   // Mensagens visíveis no canal: oculta localmente as de quem foi bloqueado.
-  const visibleMessages = messages.filter((m) => !isBlocked(m.user_id));
+  const visibleMessages = (messages ?? []).filter((m) => m && !isBlocked(m.user_id));
+
+  // Early return DEPOIS de todos os hooks (ordem estável): nada abaixo monta
+  // a árvore do chat até os dados essenciais existirem — elimina o "flash crash".
+    if (loadingMessages || !currentChannel || !channelId) {
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-servers px-4">
+        <p className="flex items-center gap-2 text-sm text-muted-foreground">
+          <Loader2 className="size-4 animate-spin" /> Carregando…
+        </p>
+      </main>
+    );
+  }
 
   return (
     <div className="flex h-[100dvh] w-full overflow-hidden bg-background text-foreground">

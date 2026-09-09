@@ -63,14 +63,15 @@ export function useCached<T>(key: string, fallback: T) {
   const set = useCallback(
     (value: T | ((prev: T) => T)) => {
       setState((prev) => {
+        const base = (prev ?? fallback) as T;
         const next =
-          typeof value === "function" ? (value as (p: T) => T)(prev) : value;
+          typeof value === "function" ? (value as (p: T) => T)(base) : value;
         store.set(key, next);
         saveToStorage(key, next);
         return next;
       });
     },
-    [key],
+    [key, fallback],
   );
 
   return [state, set, store.has(key)] as const;
